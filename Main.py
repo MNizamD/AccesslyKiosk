@@ -6,6 +6,8 @@ import sys
 import json
 from datetime import datetime
 import socket
+from lock_down_utils import check_admin
+
 
 def get_app_base_dir():
     """
@@ -316,6 +318,7 @@ class KioskApp:
 
 
 def run():
+    check_admin("Main")
     root = tk.Tk()
     app = KioskApp(root)
     root.mainloop()

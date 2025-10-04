@@ -156,5 +156,12 @@ def get_lock_kiosk_status() -> dict:
         # Default fallback
         return {"ENABLED": True}
 
+def check_admin(name: str):
+    """Check if the script is running as root."""
+    if os.geteuid() == 0:
+        print(f"{name} is elevated as admin")
+    else:
+        print("Running as standard user")
+
 if __name__ == "__main__":
     print(get_lock_kiosk_status()) # Test

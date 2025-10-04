@@ -9,7 +9,7 @@ import time
 import shutil
 import tkinter as tk
 from tkinter import ttk
-from lock_down_utils import is_process_running, kill_processes, get_process_arg, run_if_not_running
+from lock_down_utils import is_process_running, kill_processes, get_process_arg, run_if_not_running, check_admin
 
 # ---------------- CONFIG ----------------
 REPO_RAW = "https://raw.githubusercontent.com/MNizamD/LockDownKiosk/main"
@@ -214,4 +214,5 @@ def updater_loop():
         time.sleep(CHECK_INTERVAL)
 
 if __name__ == "__main__":
+    check_admin("Updater")
     updater_loop()

@@ -2,9 +2,10 @@ import sys
 import os
 import time
 import shutil
+# from elevate import elevate
 from collections import deque
 from tkinter import messagebox, Tk
-from lock_down_utils import get_lock_kiosk_status, run_if_not_running, duplicate_file, is_crash_loop
+from lock_down_utils import get_lock_kiosk_status, run_if_not_running, duplicate_file, is_crash_loop, check_admin
 
 def get_app_base_dir():
     """
@@ -100,6 +101,7 @@ def emergency_update():
 
 
 def run_kiosk():
+    check_admin("LockDown")
     if os.path.exists(FLAG_DESTRUCT_FILE):
         clean_destruction("app may have crashed")
 
