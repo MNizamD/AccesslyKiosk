@@ -7,7 +7,7 @@ import tempfile
 import time
 import os
 import json
-
+import ctypes
 import time
 from collections import deque
 
@@ -158,7 +158,7 @@ def get_lock_kiosk_status() -> dict:
 
 def check_admin(name: str):
     """Check if the script is running as root."""
-    if os.geteuid() == 0:
+    if ctypes.windll.shell32.IsUserAnAdmin() != 0:
         print(f"{name} is elevated as admin")
     else:
         print("Running as standard user")
