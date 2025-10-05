@@ -37,7 +37,7 @@ echo Generating Task Scheduler XML at "%XMLFILE%"...
 >> "%XMLFILE%" echo   ^</Triggers^>
 >> "%XMLFILE%" echo   ^<Principals^>
 >> "%XMLFILE%" echo     ^<Principal id="Author"^>
->> "%XMLFILE%" echo       ^<UserId^>SYSTEM</UserId^>
+>> "%XMLFILE%" echo       ^<UserId^>%USERONLY%</UserId^>
 >> "%XMLFILE%" echo       ^<RunLevel^>HighestAvailable^</RunLevel^>
 >> "%XMLFILE%" echo     ^</Principal^>
 >> "%XMLFILE%" echo   ^</Principals^>
