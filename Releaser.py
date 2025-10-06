@@ -5,7 +5,8 @@ import shutil
 from datetime import datetime
 
 # ---------------- CONFIG ----------------
-DETAILS_FILE = "details.json"
+DETAILS_NAME = "details.json"
+DETAILS_FILE = os.path.join('src', DETAILS_NAME)
 DIST_FOLDER = os.path.join("dist", "NizamLab")
 INSTALLER_FOLDER = "installer"   # <--- NEW
 RELEASE_LATEST = os.path.join("releases", "latest", "download")
@@ -55,8 +56,8 @@ def make_zip(new_version: str):
 
         # Add updated details.json (overwrite inside NizamLab/)
         rel_path = os.path.relpath(abs_path, DIST_FOLDER)
-        print(f"[+] Zipping: {DETAILS_FILE}")
-        zf.write(DETAILS_FILE, arcname=DETAILS_FILE)
+        print(f"[+] Zipping: {DETAILS_NAME}")
+        zf.write(DETAILS_FILE, arcname=DETAILS_NAME)
 
     print(f"[+] New release created: {zip_path}")
     return zip_path

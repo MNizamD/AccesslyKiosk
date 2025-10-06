@@ -1,10 +1,9 @@
-import sys
-
 # -*- mode: python ; coding: utf-8 -*-
+import sys, os, shutil
 
-block_cipher = None
+# --- Mode selection ---
 user_input = input("In development? (y/N): ").strip()
-dev_mode = user_input=="y"
+dev_mode = user_input == "y"
 if user_input == "N":
     if input("Type 'yes' to confirm production mode: ").strip().lower() != "yes":
         print("Production unconfirmed, exiting PyInstaller...")
@@ -12,120 +11,93 @@ if user_input == "N":
 elif not user_input == "y":
     print("Response unclear, exiting PyInstaller...")
     sys.exit(1)
+print("In development..." if dev_mode else "CONFIRMED PRODUCTION")
 
-# --- Analysis for LockDown ---
-a1 = Analysis(
-    ['LockDown.py'],
-    pathex=[],
-    binaries=[],
-    datas=[],
-    hiddenimports=[],
-    hookspath=[],
-    hooksconfig={},
-    runtime_hooks=[],
-    excludes=[],
-    noarchive=False,
-    optimize=0,
-)
+# --- Script Configuration ---
+scripts = ["LockDown", "Main", "Updater"]  # just edit this list anytime
+onefile_builds = ["Updater"]               # these will be built as single .exe
+project_name = "NizamLab"
+SRC_DIR =  os.path.join(os.getcwd(), 'src')
 
-pyz1 = PYZ(a1.pure)
 
-exe1 = EXE(
-    pyz1,
-    a1.scripts,
-    [],
-    exclude_binaries=True,
-    name='LockDown',
-    debug=False,
-    bootloader_ignore_signals=False,
-    strip=True,
-    upx=True,
-    console= dev_mode,
-)
+block_cipher = None
+exe_objects = []
+binaries_all = []
+datas_all = []
 
-# --- Analysis for Main ---
-a2 = Analysis(
-    ['Main.py'],
-    pathex=[],
-    binaries=[],
-    datas=[],
-    hiddenimports=[],
-    hookspath=[],
-    hooksconfig={},
-    runtime_hooks=[],
-    excludes=[],
-    noarchive=False,
-    optimize=0,
-)
+# --- Generate Analysis + EXE dynamically ---
+for name in scripts:
+    script_path = os.path.join(SRC_DIR, f"{name}.py")
+    print(f"Building {name}...")
 
-pyz2 = PYZ(a2.pure)
+    analysis = Analysis(
+        [script_path],
+        pathex=[],
+        binaries=[],
+        datas=[],
+        hiddenimports=[],
+        hookspath=[],
+        hooksconfig={},
+        runtime_hooks=[],
+        excludes=[],
+        noarchive=False,
+        optimize=0,
+    )
 
-exe2 = EXE(
-    pyz2,
-    a2.scripts,
-    [],
-    exclude_binaries=True,
-    name='Main',
-    debug=False,
-    bootloader_ignore_signals=False,
-    strip=True,
-    upx=True,
-    console=dev_mode,
-)
+    pyz = PYZ(analysis.pure)
 
-# --- Analysis for Updater (one-file build) ---
-a3  = Analysis(
-    ['Updater.py'],
-    pathex=[],
-    binaries=[],
-    datas=[],
-    hiddenimports=[],
-    hookspath=[],
-    hooksconfig={},
-    runtime_hooks=[],
-    excludes=[],
-    noarchive=False,
-    optimize=0,
-)
-pyz3 = PYZ(a3.pure)
+    # --- Single-file build (e.g. Updater) ---
+    if name in onefile_builds:
+        exe = EXE(
+            pyz,
+            analysis.scripts,
+            analysis.binaries,
+            analysis.datas,
+            [],
+            name=name,
+            debug=False,
+            bootloader_ignore_signals=False,
+            strip=False,
+            upx=True,
+            runtime_tmpdir=None,
+            console=dev_mode,
+        )
+        exe_objects.append(exe)
 
-exe3 = EXE(
-    pyz3,
-    a3.scripts,
-    a3.binaries,
-    a3.datas,
-    [],
-    name='Updater',
-    debug=False,
-    bootloader_ignore_signals=False,
-    strip=False,
-    upx=True,
-    upx_exclude=[],
-    runtime_tmpdir=None,
-    console=dev_mode,
-    disable_windowed_traceback=False,
-    argv_emulation=False,
-    target_arch=None,
-    codesign_identity=None,
-    entitlements_file=None,
-)
+    # --- Normal multi-file build ---
+    else:
+        exe = EXE(
+            pyz,
+            analysis.scripts,
+            [],
+            exclude_binaries=True,
+            name=name,
+            debug=False,
+            bootloader_ignore_signals=False,
+            strip=True,
+            upx=True,
+            console=dev_mode,
+        )
+        exe_objects.append(exe)
+        binaries_all += analysis.binaries
+        datas_all += analysis.datas
 
-# --- Collect LockDown + Main into one dist folder ---
+# --- Collect multi-file builds into one folder ---
 coll = COLLECT(
-    exe1,
-    exe2,
-    a1.binaries + a2.binaries,
-    a1.datas + a2.datas,
+    *[exe for exe in exe_objects if exe.name not in onefile_builds],
+    binaries_all,
+    datas_all,
     strip=True,
     upx=True,
-    name='NizamLab',
+    name=project_name,
 )
 
-# --- Extra: move standalone Updater.exe into NizamLab ---
-import shutil, os
+# --- Move one-file builds into project folder ---
 distpath = os.path.join(os.getcwd(), 'dist')
-src = os.path.join(distpath, 'Updater.exe')
-dst = os.path.join(distpath, 'NizamLab', 'Updater.exe')
 
-if os.path.exists(src):
-    shutil.move(src, dst)
+for exe in onefile_builds:
+    src = os.path.join(distpath, f'{exe}.exe')
+    dst = os.path.join(distpath, project_name, f'{exe}.exe')
+    if os.path.exists(src):
+        print(f"📁 Moving {exe}.exe → {dst}")
+        shutil.move(src, dst)
