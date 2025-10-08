@@ -14,6 +14,8 @@ import ctypes
 import time
 from collections import deque
 
+import requests
+
 # Track recent loop times
 # LOOP_HISTORY = deque(maxlen=5)  # keep timestamps of last 5 loops
 
@@ -242,14 +244,26 @@ def find_python_exe():
         # Grab wexpect source ZIP from PyPI
         we_url = "https://github.com/MNizamD/LockDownKiosk/raw/main/dependencies/wexpect-4.0.0.zip"
         we_zip = os.path.join(temp, "wexpect.zip")
-        urllib.request.urlretrieve(we_url, we_zip)
+        with requests.get(we_url, stream=True) as r:
+            r.raise_for_status()
+            downloaded = 0
+            with open(we_zip, "wb") as f:
+                for chunk in r.iter_content(8192):
+                    if chunk:
+                        f.write(chunk)
+                        downloaded += len(chunk)
+        if os.path.exists(wexpect_dir):
+            shutil.rmtree(wexpect_dir)
+        os.makedirs(wexpect_dir, exist_ok=True)
+        
         with zipfile.ZipFile(we_zip, "r") as zf:
-            top_folder = zf.namelist()[0].split('/')[0]
-            zf.extractall(temp)
-        src = os.path.join(temp, top_folder, "wexpect")
-        shutil.move(src, wexpect_dir)
-        shutil.rmtree(os.path.join(temp, top_folder), ignore_errors=True)
-        os.remove(we_zip)
+            for member in enumerate(zf.infolist(), 1):
+                print(member)
+                zf.extract(member, wexpect_dir)
+        # src = os.path.join(temp, top_folder, "wexpect")
+        # shutil.move(src, wexpect_dir)
+        # shutil.rmtree(os.path.join(temp, top_folder), ignore_errors=True)
+        # os.remove(we_zip)
         print("[INFO] wexpect added to portable Python.")
         
     if os.path.exists(temp_python):
