@@ -94,6 +94,9 @@ coll = COLLECT(
 
 # --- Move one-file builds into project folder ---
 distpath = os.path.join(os.getcwd(), 'dist')
+singleFiles = [
+    r'C:\Users\Marohom\Documents\NizamLab\src\elevater.py'
+]
 
 for exe in onefile_builds:
     src = os.path.join(distpath, f'{exe}.exe')
@@ -101,3 +104,20 @@ for exe in onefile_builds:
     if os.path.exists(src):
         print(f"📁 Moving {exe}.exe → {dst}")
         shutil.move(src, dst)
+
+# for file in singleFiles:
+#     filename = file.split("\\").pop()
+#     src = file
+#     dst = os.path.join(distpath, project_name, filename)
+#     if os.path.exists(src):
+#         print(f"📁 Moving {filename} → {dst}")
+#         shutil.copy(src, dst)
+
+elevater = r'C:\Users\Marohom\Documents\NizamLab\src\elevater.py'
+if os.path.exists(elevater):
+    filename = 'elevater.py'
+    e_dst = os.path.join(distpath, project_name, '_internal', filename)
+    print(f"📁 Copying elevater → {e_dst}")
+    shutil.copy(elevater, e_dst)
+else:
+    print(f'File not found: {elevater}')

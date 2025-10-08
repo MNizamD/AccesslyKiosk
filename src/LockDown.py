@@ -5,7 +5,7 @@ import shutil
 # from elevate import elevate
 from collections import deque
 from tkinter import messagebox, Tk
-from lock_down_utils import get_lock_kiosk_status, run_if_not_running, duplicate_file, is_crash_loop, check_admin
+from lock_down_utils import get_lock_kiosk_status, is_admin_instance_running, run_if_not_running, duplicate_file, is_crash_loop, check_admin, app_name
 
 def get_app_base_dir():
     """
@@ -46,14 +46,16 @@ FLAG_IDLE_FILE = os.path.join(DATA_DIR, "IDLE.flag")
 
 lock_status = get_lock_kiosk_status()
 
-MAIN_FILE_NAME = "Main.py"
-MAIN_SCRIPT = os.path.join(APP_DIR, MAIN_FILE_NAME)
-if not os.path.exists(MAIN_SCRIPT): # py script not found
-    MAIN_FILE_NAME = "Main.exe"
-    MAIN_SCRIPT = os.path.join(APP_DIR, MAIN_FILE_NAME)
+LOCKDOWN_FILE_NAME = app_name("LockDown")
+LOCKDOWN_SCRIPT = os.path.join(APP_DIR, LOCKDOWN_FILE_NAME)
 
-UPDATER_SCRIPT = os.path.join(APP_DIR, "Updater.exe")
-UPDATER_SCRIPT_COPY = os.path.join(DATA_DIR, "Updater_copy.exe")
+MAIN_FILE_NAME = app_name("Main")
+MAIN_SCRIPT = os.path.join(APP_DIR, MAIN_FILE_NAME)
+
+ELEVATE_SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'elevater.py')
+
+UPDATER_SCRIPT = os.path.join(APP_DIR, app_name("Updater"))
+UPDATER_SCRIPT_COPY = os.path.join(DATA_DIR, app_name("Updater_copy"))
 DETAILS_FILE = os.path.join(APP_DIR, "details.json")
 DETAILS_FILE_COPY = os.path.join(DATA_DIR, "details.json")
 
@@ -101,14 +103,27 @@ def emergency_update():
 
 
 def run_kiosk():
-    check_admin("LockDown")
+
+    # if not bool(lock_status["ENABLED"]):
+    #     print(lock_status)
+    #     print("Disabled on server")
+    #     time.sleep(3)
+    #     return
+    
+    if not check_admin(LOCKDOWN_FILE_NAME):
+        try:
+            run_if_not_running(path=ELEVATE_SCRIPT, arg=LOCKDOWN_SCRIPT)
+        except Exception as e:
+            print(e)
+
+        time.sleep(3)
+        if is_admin_instance_running(LOCKDOWN_FILE_NAME):
+            print(f"Admin {LOCKDOWN_FILE_NAME} detected. Exiting...")
+            sys.exit(0)
+        
+
     if os.path.exists(FLAG_DESTRUCT_FILE):
         clean_destruction("app may have crashed")
-
-    if not bool(lock_status["ENABLED"]):
-        print(lock_status)
-        print("Disabled on server")
-        return
 
     # Pre-check folder and disk
     ok, msg = check_files()
@@ -129,7 +144,6 @@ def run_kiosk():
             if is_crash_loop(loop_history=LOOP_HISTORY, threshold=5, interval=5):
                 emergency_update()
                 return
-            print(LOOP_HISTORY)
 
             # Replace the copy every time to ensure fresh
             duplicate_file(UPDATER_SCRIPT, UPDATER_SCRIPT_COPY)

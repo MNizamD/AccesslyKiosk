@@ -2,26 +2,10 @@ import tkinter as tk
 from tkinter import messagebox
 import csv
 import os
-import sys
 import json
 from datetime import datetime
 import socket
-from lock_down_utils import check_admin
-
-
-def get_app_base_dir():
-    """
-    Return the directory that contains the running application.
-    Works for:
-      - dev mode (python script): returns folder of this .py file
-      - frozen mode (PyInstaller one-dir or one-file): returns folder of the exe
-    """
-    if getattr(sys, "frozen", False):
-        # Frozen by PyInstaller: sys.executable -> path to the running .exe
-        return os.path.dirname(sys.executable)
-    else:
-        # Running as plain python script
-        return os.path.dirname(os.path.abspath(__file__))
+from lock_down_utils import check_admin, get_app_base_dir
 
 # ================= CONFIG ==================
 # PROGRAM_FILES = os.environ.get("ProgramFiles", "C:\\Program Files")
@@ -84,7 +68,7 @@ SECONDARY_FONT_COLOR = "#aaaaaa"
 # ================= APP =====================
 class KioskApp:
     def __init__(self, master):
-        self.last_activity = datetime.now()
+        self.reset_idle_timer()
 
         self.master = master
         self.master.title("Lab Access")
@@ -169,8 +153,11 @@ class KioskApp:
     def check_idle(self):
         """Check every second if user has been idle > 60s"""
         elapsed = (datetime.now() - self.last_activity).seconds
-        if elapsed >= 60:  # idle threshold
+        if elapsed >= 30:  # idle threshold
             self.write_idle()
+            # print("Idle")
+        # else:
+            # print("Busy")
         # recheck every second
         self.master.after(1000, self.check_idle)
     

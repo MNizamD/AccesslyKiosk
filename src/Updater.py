@@ -3,13 +3,11 @@ import sys
 import json
 import zipfile
 import requests
-import subprocess
-import psutil
 import time
 import shutil
 import tkinter as tk
 from tkinter import ttk
-from lock_down_utils import is_process_running, kill_processes, get_process_arg, run_if_not_running, check_admin
+from lock_down_utils import is_process_running, kill_processes, get_process_arg, run_if_not_running, check_admin, app_name, get_app_base_dir
 
 # ---------------- CONFIG ----------------
 REPO_RAW = "https://raw.githubusercontent.com/MNizamD/LockDownKiosk/main"
@@ -17,23 +15,17 @@ RELEASE_URL = "https://github.com/MNizamD/LockDownKiosk/raw/main/releases/latest
 ZIP_BASENAME = "NizamLab"
 LOCALDATA = os.getenv("LOCALAPPDATA")
 
-def get_app_base_dir():
-    if getattr(sys, "frozen", False):
-        return os.path.dirname(sys.executable)
-    else:
-        return os.path.dirname(os.path.abspath(__file__))
-
 ARGS_DIR = get_process_arg(sys)
 APP_DIR = ARGS_DIR if ARGS_DIR is not None else get_app_base_dir() 
 DATA_DIR = os.path.join(LOCALDATA, "NizamLab")
 FLAG_IDLE_FILE = os.path.join(DATA_DIR, "IDLE.flag")
 DETAILS_FILE = os.path.join(APP_DIR, "details.json")
 
-LOCKDOWN_FILE_NAME = "LockDown.exe"
+LOCKDOWN_FILE_NAME = app_name("LockDown")
 LOCKDOWN_SCRIPT = os.path.join(APP_DIR, LOCKDOWN_FILE_NAME)
-MAIN_FILE_NAME = "Main.exe"
+MAIN_FILE_NAME = app_name("Main")
 
-CHECK_INTERVAL = 30  # seconds
+CHECK_INTERVAL = 15  # seconds
 LAST_DIR = os.path.abspath(os.path.join(APP_DIR, '..'))
 TEMP_DIR = os.path.join(LAST_DIR, "tmp_update")
 
@@ -74,21 +66,30 @@ class UpdateWindow:
 
 # ================= Utility ====================
 def get_local_version():
-    path = os.path.join(APP_DIR, DETAILS_FILE)
-    if not os.path.exists(path):
-        return None
-    with open(path, "r") as f:
-        return json.load(f)
+    try:
+        path = os.path.join(APP_DIR, DETAILS_FILE)
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"Missing file: {path}")
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+
+    except Exception as e:
+        print("[GET_LOCAL_VER_ERR]:", e)
+        return {"version": "? local"}
 
 def get_remote_version():
-    url = f"{REPO_RAW}/details.json"
-    r = requests.get(url, timeout=10)
-    r.raise_for_status()
-    return r.json()
+    try:
+        url = f"{REPO_RAW}/src/details.json"
+        r = requests.get(url, timeout=10)
+        r.raise_for_status()
+        return r.json()
+    except Exception as e:
+        print("[GET_REMOTE_VER_ERR]:", e)
+        return { "version": "? remote" }
 
 def is_main_idle():
     if is_process_running(MAIN_FILE_NAME):
-        return not os.path.exists(FLAG_IDLE_FILE)
+        return os.path.exists(FLAG_IDLE_FILE)
     return True
 
 def is_lockdown_running():
@@ -192,7 +193,7 @@ def updater_loop():
         try:
             local = get_local_version()
             remote = get_remote_version()
-            if not local:
+            if not local or not remote:
                 call_for_update("corrupted", remote_ver)
                 time.sleep(CHECK_INTERVAL)
                 continue

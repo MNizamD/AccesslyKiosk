@@ -1,6 +1,9 @@
+import urllib.request
+import zipfile
 import psycopg2
 import psutil
 import os
+import sys
 import subprocess
 import shutil
 import tempfile
@@ -72,12 +75,32 @@ def get_process_arg(system):
         return system.argv[1]
     return None
 
-def run_foreground(path):
+def get_app_base_dir():
+    """
+    Return the directory that contains the running application.
+    Works for:
+      - dev mode (python script): returns folder of this .py file
+      - frozen mode (PyInstaller one-dir or one-file): returns folder of the exe
+    """
+    if getattr(sys, "frozen", False):
+        # Frozen by PyInstaller: sys.executable -> path to the running .exe
+        return os.path.dirname(sys.executable)
+    else:
+        # Running as plain python script
+        return os.path.dirname(os.path.abspath(__file__))
+    
+def app_name(name: str):
+    if getattr(sys, "frozen", False):
+        return f"{name}.exe"
+    return f"{name}.py"
+
+
+def run_foreground(path: str, arg: str = None):
     """Run a process in the foreground (blocking)."""
     if path.lower().endswith(".py"):
-        subprocess.run(["python.exe", path])
+        subprocess.run([find_python_exe(), path, arg])
     elif path.lower().endswith(".exe"):
-        subprocess.run([path])
+        subprocess.run([path, arg])
     else:
         print(f"[WARN] Unknown file type: {path}")
 
@@ -92,7 +115,7 @@ def run_if_not_running(path: str, is_background = False, arg:str = None):
         if is_background == True:
             run_background(path, arg)
         else:
-            run_foreground(path)
+            run_foreground(path, arg)
     else:
         print(f"[INFO] {exe_name} already running.")
     return None
@@ -160,8 +183,104 @@ def check_admin(name: str):
     """Check if the script is running as root."""
     if ctypes.windll.shell32.IsUserAnAdmin() != 0:
         print(f"{name} is elevated as admin")
+        return True
     else:
-        print("Running as standard user")
+        print(f"{name} is running as standard user")
+        return False
+
+def find_python_exe():
+    """Return full path to a python.exe to use, or None if not found."""
+    # 1) if running under a python interpreter (non-frozen), use it
+    # exe = sys.executable
+    # if exe and os.path.basename(exe).lower().startswith("python"):
+    #     print("Python interpreter found")
+    #     return exe
+
+    # # 2) try 'python' on PATH
+    # py_on_path = shutil.which("python")
+    # if py_on_path:
+    #     print("Python environment found")
+    #     return py_on_path
+
+    # # 3) try the python launcher 'py'
+    # py_launcher = shutil.which("py")
+    # if py_launcher:
+    #     # prefer py -3 if available (we want an exe path, but py is a launcher)
+    #     print("Python launcher PY found")
+    #     return py_launcher
+    
+    # # 4) common per-user and system-wide installs
+    # common_dirs = [
+    #     rf"C:\Users\{os.getlogin()}\AppData\Local\Programs\Python",
+    #     r"C:\Program Files",
+    #     r"C:\Program Files (x86)",
+    #     r"C:\Users\{os.getlogin()}\anaconda3",
+    #     r"C:\Users\{os.getlogin()}\miniconda3",
+    # ]
+    # for base in common_dirs:
+    #     if os.path.isdir(base):
+    #         for exe_path in glob.glob(os.path.join(base, "Python*", "python.exe")):
+    #             print("Python common directory found")
+    #             return exe_path
+
+    # 5) fallback: look for a portable python in temp (you must place it there beforehand)
+    temp = tempfile.gettempdir()
+    py_dir = os.path.join(temp, "portable_python")
+    temp_python = os.path.join(py_dir, "python.exe")
+    if not os.path.exists(temp_python):
+        print("Downloading portable Python...")
+        url = "https://www.python.org/ftp/python/3.12.5/python-3.12.5-embed-amd64.zip"
+        zip_path = os.path.join(temp, "py.zip")
+        urllib.request.urlretrieve(url, zip_path)
+        with zipfile.ZipFile(zip_path, "r") as zf:
+            zf.extractall(py_dir)
+
+    # ---- Ensure wexpect is present ----
+    wexpect_dir = os.path.join(py_dir, "wexpect")
+    if not os.path.exists(wexpect_dir):
+        print("[INFO] Downloading wexpect...")
+        # Grab wexpect source ZIP from PyPI
+        we_url = "https://files.pythonhosted.org/packages/da/78/2a8ca6478f26593e036eef5462afd9f0fb0d3c209ecc448244875b6f5119/wexpect-4.0.0.tar.gz"
+        we_zip = os.path.join(temp, "wexpect.zip")
+        urllib.request.urlretrieve(we_url, we_zip)
+        with zipfile.ZipFile(we_zip, "r") as zf:
+            top_folder = zf.namelist()[0].split('/')[0]
+            zf.extractall(temp)
+        src = os.path.join(temp, top_folder, "wexpect")
+        shutil.move(src, wexpect_dir)
+        shutil.rmtree(os.path.join(temp, top_folder), ignore_errors=True)
+        os.remove(we_zip)
+        print("[INFO] wexpect added to portable Python.")
+        
+    if os.path.exists(temp_python):
+        print("Python portable found")
+
+    
+    return temp_python
+
+def is_admin_instance_running(exe_name: str):
+    """Check if another process with the same exe name is running as admin."""
+    current_pid = os.getpid()
+
+    for proc in psutil.process_iter(['pid', 'name']):
+        try:
+            if proc.info['name'] and proc.info['name'].lower() == exe_name.lower():
+                if proc.info['pid'] == current_pid:
+                    continue  # skip self
+                
+                # Try checking if the process runs as admin
+                # Open with limited rights (no crash if not admin)
+                handle = psutil.Process(proc.info['pid'])
+                try:
+                    if handle.username().lower().endswith('\\administrator'):
+                        return True
+                except psutil.AccessDenied:
+                    # AccessDenied usually means it's a higher-privilege process (admin)
+                    return True
+        except (psutil.NoSuchProcess, psutil.ZombieProcess):
+            continue
+
+    return False
 
 if __name__ == "__main__":
     print(get_lock_kiosk_status()) # Test

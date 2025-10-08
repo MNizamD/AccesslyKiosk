@@ -7,4 +7,4 @@ pyinstaller --onedir --noconfirm --noconsole Main.py
 
 pyinstaller --onedir --name NizamLab LockDown.py Main.py
 
-pyinstaller combined.spec
+pyinstaller --noconfirm combined.spec
