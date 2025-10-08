@@ -240,7 +240,7 @@ def find_python_exe():
     if not os.path.exists(wexpect_dir):
         print("[INFO] Downloading wexpect...")
         # Grab wexpect source ZIP from PyPI
-        we_url = "https://github.com/MNizamD/LockDownKiosk/raw/main/dependencies/wexpect.zip"
+        we_url = "https://github.com/MNizamD/LockDownKiosk/raw/main/dependencies/wexpect-4.0.0.zip"
         we_zip = os.path.join(temp, "wexpect.zip")
         urllib.request.urlretrieve(we_url, we_zip)
         with zipfile.ZipFile(we_zip, "r") as zf:
