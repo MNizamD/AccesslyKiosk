@@ -5,12 +5,12 @@ import os
 import json
 from datetime import datetime
 import socket
-from lock_down_utils import check_admin, get_app_base_dir
+import lock_down_utils as ldu
 
 # ================= CONFIG ==================
 # PROGRAM_FILES = os.environ.get("ProgramFiles", "C:\\Program Files")
 # PROGRAM_DATA = os.environ.get("ProgramData", "C:\\ProgramData")
-BASE_DIR = get_app_base_dir()
+BASE_DIR = ldu.get_app_base_dir()
 LOCALDATA = os.getenv("LOCALAPPDATA")
 
 APP_DIR = BASE_DIR   # app install dir (read-only)
@@ -24,15 +24,15 @@ FLAG_IDLE_FILE = os.path.join(DATA_DIR, "IDLE.flag")
 PC_NAME = socket.gethostname()
 
 ### --- Load details.json ---
-DETAILS_FILE = os.path.join(BASE_DIR, "details.json")
-DETAILS_INFO = {"version": "?", "updated": "?"}
-if os.path.exists(DETAILS_FILE):
-    try:
-        with open(DETAILS_FILE, "r") as f:
-            DETAILS_INFO = json.load(f)
-    except Exception as e:
-        print("Error reading details.json:", e)
-# ===========================================
+# DETAILS_FILE = os.path.join(BASE_DIR, "details.json")
+# DETAILS_INFO = {"version": "?", "updated": "?"}
+# if os.path.exists(DETAILS_FILE):
+#     try:
+#         with open(DETAILS_FILE, "r") as f:
+#             DETAILS_INFO = json.load(f)
+#     except Exception as e:
+#         print("Error reading details.json:", e)
+# # ===========================================
 
 
 # Ensure data directory exists
@@ -132,9 +132,10 @@ class KioskApp:
         self.entry.bind("<Key>", self.reset_idle_timer)   # <--- NEW
 
         ### --- Version/Update Info ---
+        details = ldu.get_details_json()
         self.version_label = tk.Label(
             self.frame,
-            text=f"v{DETAILS_INFO.get('version','?')}  |  Updated: {DETAILS_INFO.get('updated','?')}",
+            text=f"v{details.get('version','?')}  |  Updated: {details.get('updated','?')}",
             font=("Arial", 10),
             fg=SECONDARY_FONT_COLOR,
             bg=BG_COLOR
@@ -305,7 +306,7 @@ class KioskApp:
 
 
 def run():
-    check_admin("Main")
+    ldu.check_admin("Main")
     root = tk.Tk()
     app = KioskApp(root)
     root.mainloop()

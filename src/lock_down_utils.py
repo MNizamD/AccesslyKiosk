@@ -1,3 +1,4 @@
+import glob
 import urllib.request
 import zipfile
 import psycopg2
@@ -193,37 +194,37 @@ def check_admin(name: str):
 def find_python_exe():
     """Return full path to a python.exe to use, or None if not found."""
     # 1) if running under a python interpreter (non-frozen), use it
-    # exe = sys.executable
-    # if exe and os.path.basename(exe).lower().startswith("python"):
-    #     print("Python interpreter found")
-    #     return exe
+    exe = sys.executable
+    if exe and os.path.basename(exe).lower().startswith("python"):
+        print("Python interpreter found")
+        return exe
 
-    # # 2) try 'python' on PATH
-    # py_on_path = shutil.which("python")
-    # if py_on_path:
-    #     print("Python environment found")
-    #     return py_on_path
+    # 2) try 'python' on PATH
+    py_on_path = shutil.which("python")
+    if py_on_path:
+        print("Python environment found")
+        return py_on_path
 
-    # # 3) try the python launcher 'py'
-    # py_launcher = shutil.which("py")
-    # if py_launcher:
-    #     # prefer py -3 if available (we want an exe path, but py is a launcher)
-    #     print("Python launcher PY found")
-    #     return py_launcher
+    # 3) try the python launcher 'py'
+    py_launcher = shutil.which("py")
+    if py_launcher:
+        # prefer py -3 if available (we want an exe path, but py is a launcher)
+        print("Python launcher PY found")
+        return py_launcher
     
-    # # 4) common per-user and system-wide installs
-    # common_dirs = [
-    #     rf"C:\Users\{os.getlogin()}\AppData\Local\Programs\Python",
-    #     r"C:\Program Files",
-    #     r"C:\Program Files (x86)",
-    #     r"C:\Users\{os.getlogin()}\anaconda3",
-    #     r"C:\Users\{os.getlogin()}\miniconda3",
-    # ]
-    # for base in common_dirs:
-    #     if os.path.isdir(base):
-    #         for exe_path in glob.glob(os.path.join(base, "Python*", "python.exe")):
-    #             print("Python common directory found")
-    #             return exe_path
+    # 4) common per-user and system-wide installs
+    common_dirs = [
+        rf"C:\Users\{os.getlogin()}\AppData\Local\Programs\Python",
+        r"C:\Program Files",
+        r"C:\Program Files (x86)",
+        r"C:\Users\{os.getlogin()}\anaconda3",
+        r"C:\Users\{os.getlogin()}\miniconda3",
+    ]
+    for base in common_dirs:
+        if os.path.isdir(base):
+            for exe_path in glob.glob(os.path.join(base, "Python*", "python.exe")):
+                print("Python common directory found")
+                return exe_path
 
     # 5) fallback: look for a portable python in temp (you must place it there beforehand)
     temp = tempfile.gettempdir()
@@ -233,44 +234,46 @@ def find_python_exe():
         print("Downloading portable Python...")
         url = "https://www.python.org/ftp/python/3.12.5/python-3.12.5-embed-amd64.zip"
         zip_path = os.path.join(temp, "py.zip")
-        urllib.request.urlretrieve(url, zip_path)
+        if not download(url, zip_path):
+            print("Something went wrong :(")
+        else:
+            print("Download portable python complete!")
+
         with zipfile.ZipFile(zip_path, "r") as zf:
             zf.extractall(py_dir)
-
-    # ---- Ensure wexpect is present ----
-    wexpect_dir = os.path.join(py_dir, "wexpect")
-    if not os.path.exists(wexpect_dir):
-        print("[INFO] Downloading wexpect...")
-        # Grab wexpect source ZIP from PyPI
-        we_url = "https://github.com/MNizamD/LockDownKiosk/raw/main/dependencies/wexpect-4.0.0.zip"
-        we_zip = os.path.join(temp, "wexpect.zip")
-        with requests.get(we_url, stream=True) as r:
-            r.raise_for_status()
-            downloaded = 0
-            with open(we_zip, "wb") as f:
-                for chunk in r.iter_content(8192):
-                    if chunk:
-                        f.write(chunk)
-                        downloaded += len(chunk)
-        if os.path.exists(wexpect_dir):
-            shutil.rmtree(wexpect_dir)
-        os.makedirs(wexpect_dir, exist_ok=True)
-        
-        with zipfile.ZipFile(we_zip, "r") as zf:
-            for member in enumerate(zf.infolist(), 1):
-                print(member)
-                zf.extract(member, wexpect_dir)
-        # src = os.path.join(temp, top_folder, "wexpect")
-        # shutil.move(src, wexpect_dir)
-        # shutil.rmtree(os.path.join(temp, top_folder), ignore_errors=True)
-        # os.remove(we_zip)
-        print("[INFO] wexpect added to portable Python.")
+    # Embedded Python disables site-packages by default
+    pth_files = [f for f in os.listdir(py_dir) if f.endswith("._pth")]
+    if pth_files:
+        pth_file = os.path.join(py_dir, pth_files[0])
+        with open(pth_file, "r") as f:
+            lines = f.readlines()
+        with open(pth_file, "w") as f:
+            for line in lines:
+                # Uncomment "import site" to enable site-packages
+                if line.strip() == "#import site":
+                    f.write("import site\n")
+                else:
+                    f.write(line)
+        print(f"Fixed _pth file: {pth_file}")
         
     if os.path.exists(temp_python):
         print("Python portable found")
 
     
     return temp_python
+
+def download(src: str, dst: str):
+    try:
+        with requests.get(src, stream=True) as r:
+            r.raise_for_status()
+            with open(dst, "wb") as f:
+                for chunk in r.iter_content(8192):
+                    if chunk:
+                        f.write(chunk)
+        return True
+    except Exception as e:
+        print("[ERR_DOWNLOAD]:", e)
+        return False
 
 def is_admin_instance_running(exe_name: str):
     """Check if another process with the same exe name is running as admin."""
@@ -295,6 +298,21 @@ def is_admin_instance_running(exe_name: str):
             continue
 
     return False
+
+# ================= Utility ====================
+def get_details_json():
+    APP_DIR = get_app_base_dir()
+    DETAILS_FILE = os.path.abspath(os.path.join(APP_DIR, "..", "details.json"))
+    try:
+        path = os.path.join(APP_DIR, DETAILS_FILE)
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"Missing file: {path}")
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+
+    except Exception as e:
+        print("[GET_DETAILS_JSON_ERR]:", e)
+        return {"version": "?", "updated": "?"}
 
 if __name__ == "__main__":
     print(get_lock_kiosk_status()) # Test

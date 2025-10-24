@@ -5,57 +5,33 @@ import shutil
 # from elevate import elevate
 from collections import deque
 from tkinter import messagebox, Tk
-from lock_down_utils import get_lock_kiosk_status, is_admin_instance_running, run_if_not_running, duplicate_file, is_crash_loop, check_admin, app_name
-
-def get_app_base_dir():
-    """
-    Return the directory that contains the running application.
-    Works for:
-      - dev mode (python script): returns folder of this .py file
-      - frozen mode (PyInstaller one-dir or one-file): returns folder of the exe
-    """
-    if getattr(sys, "frozen", False):
-        # Frozen by PyInstaller: sys.executable -> path to the running .exe
-        return os.path.dirname(sys.executable)
-    else:
-        # Running as plain python script
-        return os.path.dirname(os.path.abspath(__file__))
+from elevater import run_elevate
+import lock_down_utils as ldu
 
 # ---------------- CONFIG ----------------
 # PROGRAM_FILES = os.environ.get("ProgramFiles", "C:\\Program Files")
 # PROGRAM_DATA = os.environ.get("ProgramData", "C:\\ProgramData")
 LOCALDATA = os.getenv("LOCALAPPDATA")
 
-APP_DIR = get_app_base_dir()   # app install dir (read-only)
+APP_DIR = ldu.get_app_base_dir()   # app install dir (read-only)
 DATA_DIR = os.path.join(LOCALDATA, "NizamLab")   # data dir (writable)
 
 LOG_FILE = os.path.join(DATA_DIR, "StudentLogs.csv")
 FLAG_DESTRUCT_FILE = os.path.join(DATA_DIR, "STOP_LAUNCHER.flag")
 FLAG_IDLE_FILE = os.path.join(DATA_DIR, "IDLE.flag")
 
-# ### --- Load details.json ---
-# DETAILS_FILE = os.path.join(BASE_DIR, "details.json")
-# DETAILS_INFO = {}
-# if os.path.exists(DETAILS_FILE):
-#     try:
-#         with open(DETAILS_FILE, "r") as f:
-#             DETAILS_INFO = json.load(f)
-#     except Exception as e:
-#         print("Error reading details.json:", e)
-# # ===========================================
+lock_status = ldu.get_lock_kiosk_status()
 
-lock_status = get_lock_kiosk_status()
-
-LOCKDOWN_FILE_NAME = app_name("LockDown")
+LOCKDOWN_FILE_NAME = ldu.app_name("LockDown")
 LOCKDOWN_SCRIPT = os.path.join(APP_DIR, LOCKDOWN_FILE_NAME)
 
-MAIN_FILE_NAME = app_name("Main")
+MAIN_FILE_NAME = ldu.app_name("Main")
 MAIN_SCRIPT = os.path.join(APP_DIR, MAIN_FILE_NAME)
 
 ELEVATE_SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'elevater.py')
 
-UPDATER_SCRIPT = os.path.join(APP_DIR, app_name("Updater"))
-UPDATER_SCRIPT_COPY = os.path.join(DATA_DIR, app_name("Updater_copy"))
+UPDATER_SCRIPT = os.path.join(APP_DIR, ldu.app_name("Updater"))
+UPDATER_SCRIPT_COPY = os.path.join(DATA_DIR, ldu.app_name("Updater_copy"))
 DETAILS_FILE = os.path.join(APP_DIR, "details.json")
 DETAILS_FILE_COPY = os.path.join(DATA_DIR, "details.json")
 
@@ -97,27 +73,28 @@ def clean_destruction(msg):
 
 def emergency_update():
     print("[!] Detected crash loop — running emergency update")
-    duplicate_file(UPDATER_SCRIPT, UPDATER_SCRIPT_COPY)
-    run_if_not_running(UPDATER_SCRIPT_COPY, is_background=True, arg=APP_DIR)
+    ldu.duplicate_file(UPDATER_SCRIPT, UPDATER_SCRIPT_COPY)
+    ldu.run_if_not_running(UPDATER_SCRIPT_COPY, is_background=True, arg=APP_DIR)
     time.sleep(20)
 
 
 def run_kiosk():
 
-    # if not bool(lock_status["ENABLED"]):
-    #     print(lock_status)
-    #     print("Disabled on server")
-    #     time.sleep(3)
-    #     return
+    if not bool(lock_status["ENABLED"]):
+        print(lock_status)
+        print("Disabled on server")
+        time.sleep(3)
+        return
     
-    if not check_admin(LOCKDOWN_FILE_NAME):
+    if not ldu.check_admin(LOCKDOWN_FILE_NAME):
         try:
-            run_if_not_running(path=ELEVATE_SCRIPT, arg=LOCKDOWN_SCRIPT)
+            # run_if_not_running(path=ELEVATE_SCRIPT, arg=LOCKDOWN_SCRIPT)
+            run_elevate(LOCKDOWN_SCRIPT)
         except Exception as e:
             print(e)
 
         time.sleep(3)
-        if is_admin_instance_running(LOCKDOWN_FILE_NAME):
+        if ldu.is_admin_instance_running(LOCKDOWN_FILE_NAME):
             print(f"Admin {LOCKDOWN_FILE_NAME} detected. Exiting...")
             sys.exit(0)
         
@@ -141,15 +118,15 @@ def run_kiosk():
             break
 
         try:
-            if is_crash_loop(loop_history=LOOP_HISTORY, threshold=5, interval=5):
+            if ldu.is_crash_loop(loop_history=LOOP_HISTORY, threshold=5, interval=5):
                 emergency_update()
                 return
 
             # Replace the copy every time to ensure fresh
-            duplicate_file(UPDATER_SCRIPT, UPDATER_SCRIPT_COPY)
+            ldu.duplicate_file(UPDATER_SCRIPT, UPDATER_SCRIPT_COPY)
 
-            run_if_not_running(UPDATER_SCRIPT_COPY, is_background=True, arg=APP_DIR)
-            run_if_not_running(MAIN_SCRIPT)
+            ldu.run_if_not_running(UPDATER_SCRIPT_COPY, is_background=True, arg=APP_DIR)
+            ldu.run_if_not_running(MAIN_SCRIPT)
             print("Next loop")
 
         except Exception as e:

@@ -16,7 +16,8 @@ if %errorlevel% neq 0 (
 :: CONFIG
 set TASKNAME=LockDownKiosk
 set USERONLY=GVC
-set APPDIR=C:\Users\%USERONLY%\AppData\Roaming\NizamLab
+@REM set APPDIR=C:\Users\%USERONLY%\AppData\Roaming\NizamLab
+set APPDIR=E:\Miscellaneous\NizamLab
 set APPNAME=LockDown.exe
 
 :: Paths
@@ -24,6 +25,9 @@ set CURDIR=%~dp0
 set DESTDIR=%APPDIR%
 set XMLFILE=%CURDIR%LockDownKiosk.xml
 set APPEXEPATH=%APPDIR%\%APPNAME%
+
+:: Envi
+set WEXPECT_SPAWN_CLASS=SpawnPipe
 
 :: Build ISO8601 Date for <Date>
 for /f %%I in ('powershell -NoProfile -Command "Get-Date -Format yyyy-MM-ddTHH:mm:ss"') do set DATEISO=%%I

@@ -15,8 +15,9 @@ print("In development..." if dev_mode else "CONFIRMED PRODUCTION")
 
 # --- Script Configuration ---
 scripts = ["LockDown", "Main", "Updater"]  # just edit this list anytime
-onefile_builds = ["Updater"]               # these will be built as single .exe
+onefile_builds = ["Updater", "elevater"]               # these will be built as single .exe
 project_name = "NizamLab"
+destination_folder = "src"
 SRC_DIR =  os.path.join(os.getcwd(), 'src')
 
 
@@ -89,35 +90,15 @@ coll = COLLECT(
     datas_all,
     strip=True,
     upx=True,
-    name=project_name,
+    name=destination_folder,
 )
 
 # --- Move one-file builds into project folder ---
 distpath = os.path.join(os.getcwd(), 'dist')
-singleFiles = [
-    r'C:\Users\Marohom\Documents\NizamLab\src\elevater.py'
-]
 
 for exe in onefile_builds:
     src = os.path.join(distpath, f'{exe}.exe')
-    dst = os.path.join(distpath, project_name, f'{exe}.exe')
+    dst = os.path.join(distpath, destination_folder, f'{exe}.exe')
     if os.path.exists(src):
         print(f"📁 Moving {exe}.exe → {dst}")
         shutil.move(src, dst)
-
-# for file in singleFiles:
-#     filename = file.split("\\").pop()
-#     src = file
-#     dst = os.path.join(distpath, project_name, filename)
-#     if os.path.exists(src):
-#         print(f"📁 Moving {filename} → {dst}")
-#         shutil.copy(src, dst)
-
-elevater = r'C:\Users\Marohom\Documents\NizamLab\src\elevater.py'
-if os.path.exists(elevater):
-    filename = 'elevater.py'
-    e_dst = os.path.join(distpath, project_name, '_internal', filename)
-    print(f"📁 Copying elevater → {e_dst}")
-    shutil.copy(elevater, e_dst)
-else:
-    print(f'File not found: {elevater}')

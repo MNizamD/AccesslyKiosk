@@ -7,7 +7,7 @@ import time
 import shutil
 import tkinter as tk
 from tkinter import ttk
-from lock_down_utils import is_process_running, kill_processes, get_process_arg, run_if_not_running, check_admin, app_name, get_app_base_dir
+import lock_down_utils as ldu
 
 # ---------------- CONFIG ----------------
 REPO_RAW = "https://raw.githubusercontent.com/MNizamD/LockDownKiosk/main"
@@ -15,15 +15,15 @@ RELEASE_URL = "https://github.com/MNizamD/LockDownKiosk/raw/main/releases/latest
 ZIP_BASENAME = "NizamLab"
 LOCALDATA = os.getenv("LOCALAPPDATA")
 
-ARGS_DIR = get_process_arg(sys)
-APP_DIR = ARGS_DIR if ARGS_DIR is not None else get_app_base_dir() 
+ARGS_DIR = ldu.get_process_arg(sys)
+APP_DIR = ARGS_DIR if ARGS_DIR is not None else ldu.get_app_base_dir() 
 DATA_DIR = os.path.join(LOCALDATA, "NizamLab")
 FLAG_IDLE_FILE = os.path.join(DATA_DIR, "IDLE.flag")
 DETAILS_FILE = os.path.join(APP_DIR, "details.json")
 
-LOCKDOWN_FILE_NAME = app_name("LockDown")
+LOCKDOWN_FILE_NAME = ldu.app_name("LockDown")
 LOCKDOWN_SCRIPT = os.path.join(APP_DIR, LOCKDOWN_FILE_NAME)
-MAIN_FILE_NAME = app_name("Main")
+MAIN_FILE_NAME = ldu.app_name("Main")
 
 CHECK_INTERVAL = 15  # seconds
 LAST_DIR = os.path.abspath(os.path.join(APP_DIR, '..'))
@@ -64,19 +64,6 @@ class UpdateWindow:
 # ==============================================
 
 
-# ================= Utility ====================
-def get_local_version():
-    try:
-        path = os.path.join(APP_DIR, DETAILS_FILE)
-        if not os.path.exists(path):
-            raise FileNotFoundError(f"Missing file: {path}")
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-
-    except Exception as e:
-        print("[GET_LOCAL_VER_ERR]:", e)
-        return {"version": "? local"}
-
 def get_remote_version():
     try:
         url = f"{REPO_RAW}/src/details.json"
@@ -88,12 +75,12 @@ def get_remote_version():
         return { "version": "? remote" }
 
 def is_main_idle():
-    if is_process_running(MAIN_FILE_NAME):
+    if ldu.is_process_running(MAIN_FILE_NAME):
         return os.path.exists(FLAG_IDLE_FILE)
     return True
 
 def is_lockdown_running():
-    return is_process_running(LOCKDOWN_FILE_NAME)
+    return ldu.is_process_running(LOCKDOWN_FILE_NAME)
 # ==============================================
 
 
@@ -160,7 +147,7 @@ def call_for_update(local_ver:str, remote_ver:str):
             print("Main is in used, unsafe to update")
             time.sleep(CHECK_INTERVAL)
 
-        kill_processes([LOCKDOWN_FILE_NAME, MAIN_FILE_NAME])
+        ldu.kill_processes([LOCKDOWN_FILE_NAME, MAIN_FILE_NAME])
         extract_zip(zip_path, TEMP_DIR, ui)
         replace_old_with_temp(APP_DIR, TEMP_DIR, ui)
 
@@ -168,7 +155,7 @@ def call_for_update(local_ver:str, remote_ver:str):
         ui.set_message("Restarting LockDown...")
         time.sleep(2)
         ui.close()
-        run_if_not_running(LOCKDOWN_SCRIPT, is_background=True)
+        ldu.run_if_not_running(LOCKDOWN_SCRIPT, is_background=True)
         sys.exit(0)
     except Exception as e:
         print(f"[call_for_update ERR]: {e}")
@@ -191,7 +178,7 @@ def updater_loop():
 
         print("Main is idle, safe to update")
         try:
-            local = get_local_version()
+            local = ldu.get_details_json()
             remote = get_remote_version()
             if not local or not remote:
                 call_for_update("corrupted", remote_ver)
@@ -215,5 +202,5 @@ def updater_loop():
         time.sleep(CHECK_INTERVAL)
 
 if __name__ == "__main__":
-    check_admin("Updater")
+    ldu.check_admin("Updater")
     updater_loop()

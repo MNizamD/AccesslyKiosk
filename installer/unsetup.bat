@@ -18,7 +18,7 @@ if %errorlevel% neq 0 (
 :: CHANGE THESE if needed
 set TASKNAME=LockDownKiosk
 set USERONLY=GVC
-set DESTDIR=C:\Users\%USERONLY%\AppData\Roaming\NizamLab
+set DESTDIR=E:\Miscellaneous\NizamLab
 
 echo Removing Scheduled Task "%TASKNAME%"...
 schtasks /delete /tn "%TASKNAME%" /f

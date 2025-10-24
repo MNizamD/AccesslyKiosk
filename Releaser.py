@@ -6,13 +6,15 @@ from datetime import datetime
 
 # ---------------- CONFIG ----------------
 DETAILS_NAME = "details.json"
-DETAILS_FILE = os.path.join('src', DETAILS_NAME)
-DIST_FOLDER = os.path.join("dist", "NizamLab")
-INSTALLER_FOLDER = "installer"   # <--- NEW
+DETAILS_FILE = os.path.join("src", DETAILS_NAME)
+DIST_FOLDER = "dist"
+DIST_FOLDERS_TO_ZIP = [f"{DIST_FOLDER}/src", "wexpect"]  # <--- NEW: include both folders under dist/
+INSTALLER_FOLDER = "installer"
 RELEASE_LATEST = os.path.join("releases", "latest", "download")
 RELEASE_OLD = os.path.join("releases", "old_versions")
 ZIP_BASENAME = "NizamLab"
 # ----------------------------------------
+
 
 def bump_version(version: str, part: str) -> str:
     major, minor, patch = map(int, version.split("."))
@@ -28,7 +30,6 @@ def bump_version(version: str, part: str) -> str:
         raise ValueError("Invalid bump type. Use mj/mn/p")
     return f"{major}.{minor}.{patch}"
 
-INSTALLER_FOLDER = "installer"  # add this at the top with other configs
 
 def make_zip(new_version: str):
     os.makedirs(RELEASE_LATEST, exist_ok=True)
@@ -38,28 +39,35 @@ def make_zip(new_version: str):
     zip_path = os.path.join(RELEASE_LATEST, zip_name)
 
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
-        # Add dist/NizamLab content (preserve structure under NizamLab/)
-        for root, _, files in os.walk(DIST_FOLDER):
-            print(f"[+] Zipping: {root}")
-            for file in files:
-                abs_path = os.path.join(root, file)
-                rel_path = os.path.relpath(abs_path, DIST_FOLDER)
-                zf.write(abs_path, arcname=rel_path)
+        # Add both NizamLab and wexpect folders
+        for folder_name in DIST_FOLDERS_TO_ZIP:
+            # folder_path = os.path.join(DIST_FOLDER, folder_name)
+            folder_path = os.path.realpath(folder_name)
+            if not os.path.exists(folder_path):
+                print(f"[!] Skipping missing folder: {folder_path}")
+                continue
 
-        # Add installer files (flat) into NizamLab/
+            for root, _, files in os.walk(folder_path):
+                print(f"[+] Zipping: {root}")
+                for file in files:
+                    abs_path = os.path.join(root, file)
+                    print("FN: ", folder_path)
+                    rel_path = os.path.relpath(abs_path, DIST_FOLDER)  # keep dist/ relative structure
+                    zf.write(abs_path, arcname=rel_path)
+
+        # Add installer files (flat)
         if os.path.exists(INSTALLER_FOLDER):
             for file in os.listdir(INSTALLER_FOLDER):
                 abs_path = os.path.join(INSTALLER_FOLDER, file)
-                if os.path.isfile(abs_path):  # only files
-                    print(f"[+] Zipping: {abs_path}")
+                if os.path.isfile(abs_path):
+                    print(f"[+] Zipping installer file: {file}")
                     zf.write(abs_path, arcname=file)
 
-        # Add updated details.json (overwrite inside NizamLab/)
-        rel_path = os.path.relpath(abs_path, DIST_FOLDER)
+        # Add updated details.json
         print(f"[+] Zipping: {DETAILS_NAME}")
         zf.write(DETAILS_FILE, arcname=DETAILS_NAME)
 
-    print(f"[+] New release created: {zip_path}")
+    print(f"[++] New release created: {zip_path}")
     return zip_path
 
 
@@ -96,6 +104,7 @@ def main():
 
     # Make new release
     make_zip(new_version)
+
 
 if __name__ == "__main__":
     main()
