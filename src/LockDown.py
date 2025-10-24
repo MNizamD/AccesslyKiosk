@@ -89,7 +89,7 @@ def run_kiosk():
     if not ldu.check_admin(LOCKDOWN_FILE_NAME):
         try:
             # run_if_not_running(path=ELEVATE_SCRIPT, arg=LOCKDOWN_SCRIPT)
-            run_elevate(LOCKDOWN_SCRIPT)
+            run_elevate('Administrator','iamadmin',False, LOCKDOWN_SCRIPT)
         except Exception as e:
             print(e)
 
