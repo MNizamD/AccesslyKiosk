@@ -8,7 +8,10 @@ from datetime import datetime
 DETAILS_NAME = "details.json"
 DETAILS_FILE = os.path.join("src", DETAILS_NAME)
 DIST_FOLDER = "dist"
-DIST_FOLDERS_TO_ZIP = [f"{DIST_FOLDER}/src", "wexpect"]  # <--- NEW: include both folders under dist/
+DIST_FOLDERS_TO_ZIP = [
+    f"{DIST_FOLDER}/src",
+    # "wexpect"
+    ]  # <--- NEW: include both folders under dist/
 INSTALLER_FOLDER = "installer"
 RELEASE_LATEST = os.path.join("releases", "latest", "download")
 RELEASE_OLD = os.path.join("releases", "old_versions")
@@ -51,7 +54,7 @@ def make_zip(new_version: str):
                 print(f"[+] Zipping: {root}")
                 for file in files:
                     abs_path = os.path.join(root, file)
-                    print("FN: ", folder_path)
+                    # print("FN: ", folder_path)
                     rel_path = os.path.relpath(abs_path, DIST_FOLDER)  # keep dist/ relative structure
                     zf.write(abs_path, arcname=rel_path)
 
@@ -65,9 +68,9 @@ def make_zip(new_version: str):
 
         # Add updated details.json
         print(f"[+] Zipping: {DETAILS_NAME}")
-        zf.write(DETAILS_FILE, arcname=DETAILS_NAME)
+        zf.write(DETAILS_FILE, arcname=os.path.join("src",DETAILS_NAME))
 
-    print(f"[++] New release created: {zip_path}")
+    print(f"[✓] New release created: {zip_path}")
     return zip_path
 
 
