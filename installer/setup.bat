@@ -24,7 +24,7 @@ set APPNAME=LockDown.exe
 set CURDIR=%~dp0
 set DESTDIR=%APPDIR%
 set XMLFILE=%CURDIR%LockDownKiosk.xml
-set APPEXEPATH=%APPDIR%\%APPNAME%
+set APPEXEPATH=%APPDIR%\src\%APPNAME%
 
 :: Envi
 set WEXPECT_SPAWN_CLASS=SpawnPipe
