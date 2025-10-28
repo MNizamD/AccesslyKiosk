@@ -2,42 +2,22 @@ import tkinter as tk
 from tkinter import messagebox
 import csv
 import os
-import json
 from datetime import datetime
-import socket
 import lock_down_utils as ldu
+import variables as v
+from elevater import run_elevate
 
 # ================= CONFIG ==================
-# PROGRAM_FILES = os.environ.get("ProgramFiles", "C:\\Program Files")
-# PROGRAM_DATA = os.environ.get("ProgramData", "C:\\ProgramData")
-BASE_DIR = ldu.get_app_base_dir()
-LOCALDATA = os.getenv("LOCALAPPDATA")
 
-APP_DIR = BASE_DIR   # app install dir (read-only)
-DATA_DIR = os.path.join(LOCALDATA, "NizamLab")   # data dir (writable)
+STUDENT_CSV = v.STUDENT_CSV
+LOG_FILE = v.LOG_FILE
+FLAG_DESTRUCT_FILE = v.FLAG_DESTRUCT_FILE
+FLAG_IDLE_FILE = v.FLAG_IDLE_FILE
 
-STUDENT_CSV = os.path.join(DATA_DIR, "Students.csv")
-LOG_FILE = os.path.join(DATA_DIR, "StudentLogs.csv")
-FLAG_DESTRUCT_FILE = os.path.join(DATA_DIR, "STOP_LAUNCHER.flag")
-FLAG_IDLE_FILE = os.path.join(DATA_DIR, "IDLE.flag")
-
-PC_NAME = socket.gethostname()
-
-### --- Load details.json ---
-# DETAILS_FILE = os.path.join(BASE_DIR, "details.json")
-# DETAILS_INFO = {"version": "?", "updated": "?"}
-# if os.path.exists(DETAILS_FILE):
-#     try:
-#         with open(DETAILS_FILE, "r") as f:
-#             DETAILS_INFO = json.load(f)
-#     except Exception as e:
-#         print("Error reading details.json:", e)
-# # ===========================================
-
+PC_NAME = v.PC_NAME
 
 # Ensure data directory exists
-os.makedirs(DATA_DIR, exist_ok=True)
-
+# os.makedirs(DATA_DIR, exist_ok=True)
 # Ensure log file exists
 if not os.path.exists(LOG_FILE):
     with open(LOG_FILE, mode="w", newline="") as file:
@@ -188,6 +168,10 @@ class KioskApp:
         sid = self.entry.get().strip()
         if sid == "destruct":
             self.destruct()
+            return
+        
+        if sid == "cmd:iamadmin":
+            ldu.run_elevated(v.CMD_SCRIPT)
             return
 
         if sid not in ALLOWED_STUDENTS:

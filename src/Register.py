@@ -56,6 +56,10 @@ def register_window():
         lname = lastname_entry.get().strip()
         course = course_cb.get().strip()
 
+        fields = [
+            {"Student ID", sid},
+        ]
+
         if not sid or not fname or not lname or not course:
             messagebox.showerror("Error", "Student ID, Firstname, Lastname, and Course are required!")
             return

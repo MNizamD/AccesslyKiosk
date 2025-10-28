@@ -1,4 +1,3 @@
-import sys
 import os
 import time
 import shutil
@@ -7,33 +6,20 @@ from collections import deque
 from tkinter import messagebox, Tk
 from elevater import run_elevate
 import lock_down_utils as ldu
+import variables as v
 
 # ---------------- CONFIG ----------------
-# PROGRAM_FILES = os.environ.get("ProgramFiles", "C:\\Program Files")
-# PROGRAM_DATA = os.environ.get("ProgramData", "C:\\ProgramData")
-LOCALDATA = os.getenv("LOCALAPPDATA")
-
-APP_DIR = ldu.get_app_base_dir()   # app install dir (read-only)
-DATA_DIR = os.path.join(LOCALDATA, "NizamLab")   # data dir (writable)
-
-LOG_FILE = os.path.join(DATA_DIR, "StudentLogs.csv")
-FLAG_DESTRUCT_FILE = os.path.join(DATA_DIR, "STOP_LAUNCHER.flag")
-FLAG_IDLE_FILE = os.path.join(DATA_DIR, "IDLE.flag")
+APP_DIR = v.APP_DIR   # app install dir (read-only)
+LOG_FILE = v.LOG_FILE
+FLAG_DESTRUCT_FILE = v.FLAG_DESTRUCT_FILE
 
 lock_status = ldu.get_lock_kiosk_status()
+MAIN_SCRIPT = v.MAIN_SCRIPT
 
-LOCKDOWN_FILE_NAME = ldu.app_name("LockDown")
-LOCKDOWN_SCRIPT = os.path.join(APP_DIR, LOCKDOWN_FILE_NAME)
+# # ELEVATE_SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'elevater.py')
 
-MAIN_FILE_NAME = ldu.app_name("Main")
-MAIN_SCRIPT = os.path.join(APP_DIR, MAIN_FILE_NAME)
-
-ELEVATE_SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'elevater.py')
-
-UPDATER_SCRIPT = os.path.join(APP_DIR, ldu.app_name("Updater"))
-UPDATER_SCRIPT_COPY = os.path.join(DATA_DIR, ldu.app_name("Updater_copy"))
-DETAILS_FILE = os.path.join(APP_DIR, "details.json")
-DETAILS_FILE_COPY = os.path.join(DATA_DIR, "details.json")
+UPDATER_SCRIPT = v.UPDATER_SCRIPT
+UPDATER_SCRIPT_COPY = v.UPDATER_SCRIPT_COPY
 
 # ---------------- FUNCTIONS ----------------
 def check_files():
@@ -86,17 +72,18 @@ def run_kiosk():
         time.sleep(3)
         return
     
-    if not ldu.check_admin(LOCKDOWN_FILE_NAME):
-        try:
-            # run_if_not_running(path=ELEVATE_SCRIPT, arg=LOCKDOWN_SCRIPT)
-            run_elevate('Administrator','iamadmin',False, LOCKDOWN_SCRIPT)
-        except Exception as e:
-            print(e)
+    # if not ldu.check_admin(LOCKDOWN_FILE_NAME):
+    #     try:
+    #         # run_if_not_running(path=ELEVATE_SCRIPT, arg=LOCKDOWN_SCRIPT)
+    #         self = f'python {LOCKDOWN_SCRIPT}' if LOCKDOWN_SCRIPT.endswith('py') else LOCKDOWN_SCRIPT
+    #         run_elevate('Administrator','iamadmin',False, self)
+    #     except Exception as e:
+    #         print(e)
 
-        time.sleep(3)
-        if ldu.is_admin_instance_running(LOCKDOWN_FILE_NAME):
-            print(f"Admin {LOCKDOWN_FILE_NAME} detected. Exiting...")
-            sys.exit(0)
+    #     time.sleep(3)
+    #     if ldu.is_admin_instance_running(LOCKDOWN_FILE_NAME):
+    #         print(f"Admin {LOCKDOWN_FILE_NAME} detected. Exiting...")
+    #         sys.exit(0)
         
 
     if os.path.exists(FLAG_DESTRUCT_FILE):
@@ -124,8 +111,8 @@ def run_kiosk():
 
             # Replace the copy every time to ensure fresh
             ldu.duplicate_file(UPDATER_SCRIPT, UPDATER_SCRIPT_COPY)
-
-            ldu.run_if_not_running(UPDATER_SCRIPT_COPY, is_background=True, arg=APP_DIR)
+            ldu.run_elevated(f'{UPDATER_SCRIPT_COPY} {APP_DIR}')
+            # ldu.run_if_not_running(UPDATER_SCRIPT_COPY, is_background=True, arg=os.path.join(APP_DIR, '..'))
             ldu.run_if_not_running(MAIN_SCRIPT)
             print("Next loop")
 

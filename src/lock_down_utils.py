@@ -1,5 +1,4 @@
 import glob
-import urllib.request
 import zipfile
 import psycopg2
 import psutil
@@ -14,11 +13,15 @@ import json
 import ctypes
 import time
 from collections import deque
-
+import variables as v
 import requests
+from elevater import run_elevate
 
 # Track recent loop times
 # LOOP_HISTORY = deque(maxlen=5)  # keep timestamps of last 5 loops
+
+CACHE_FILE = v.CACHE_FILE
+DETAILS_FILE = v.DETAILS_FILE
 
 def is_crash_loop(loop_history: deque, threshold=5, interval=1.0):
     """
@@ -78,24 +81,6 @@ def get_process_arg(system):
         return system.argv[1]
     return None
 
-def get_app_base_dir():
-    """
-    Return the directory that contains the running application.
-    Works for:
-      - dev mode (python script): returns folder of this .py file
-      - frozen mode (PyInstaller one-dir or one-file): returns folder of the exe
-    """
-    if getattr(sys, "frozen", False):
-        # Frozen by PyInstaller: sys.executable -> path to the running .exe
-        return os.path.dirname(sys.executable)
-    else:
-        # Running as plain python script
-        return os.path.dirname(os.path.abspath(__file__))
-    
-def app_name(name: str):
-    if getattr(sys, "frozen", False):
-        return f"{name}.exe"
-    return f"{name}.py"
 
 
 def run_foreground(path: str, arg: str = None):
@@ -141,10 +126,6 @@ def duplicate_file(src:str, cpy:str):
     except Exception as e:
         print(f"Duplication error: {e}")
 
-
-LOCALDATA = os.getenv("LOCALAPPDATA")
-DATA_DIR = os.path.join(LOCALDATA, "NizamLab")   # data dir (writable)
-CACHE_FILE = os.path.join(DATA_DIR, "lock_kiosk_status.json")
 def get_lock_kiosk_status() -> dict:
     try:
         # Connect with your Supabase Postgres URI
@@ -162,8 +143,7 @@ def get_lock_kiosk_status() -> dict:
         lock_status = {key: value for key, value in rows}
 
         # Save to file (cache)
-        with open(CACHE_FILE, "w") as f:
-            json.dump(lock_status, f)
+        write_json_cache(CACHE_FILE, lock_status)
 
         cur.close()
         conn.close()
@@ -173,14 +153,31 @@ def get_lock_kiosk_status() -> dict:
 
         # Try reading from cache
         if os.path.exists(CACHE_FILE):
-            try:
-                with open(CACHE_FILE, "r") as f:
-                    return json.load(f)
-            except Exception as read_err:
-                print(f"Cache read error: {read_err}")
+            result = read_json_cache()
+            if result != None:
+                return result
+        
+        # No cache file, write new one
+        write_json_cache(CACHE_FILE, {"ENABLED": True})
 
         # Default fallback
         return {"ENABLED": True}
+
+def read_json_cache(file: str):
+    try:
+        with open(file, "r") as f:
+            return json.load(f)
+    except Exception as read_err:
+        print(f"Cache read error: {read_err}")
+        return None
+    
+def write_json_cache(file: str, value):
+    # Ensure parent folder exists
+    os.makedirs(os.path.dirname(file), exist_ok=True)
+    
+    # Create or overwrite the file
+    with open(file, "w") as f:
+        json.dump(value, f, indent=4)
 
 def check_admin(name: str):
     """Check if the script is running as root."""
@@ -301,8 +298,7 @@ def is_admin_instance_running(exe_name: str):
 
 # ================= Utility ====================
 def get_details_json():
-    APP_DIR = get_app_base_dir()
-    DETAILS_FILE = os.path.abspath(os.path.join(APP_DIR, "..", "details.json"))
+    APP_DIR = v.get_app_base_dir()
     try:
         path = os.path.join(APP_DIR, DETAILS_FILE)
         if not os.path.exists(path):
@@ -313,6 +309,12 @@ def get_details_json():
     except Exception as e:
         print("[GET_DETAILS_JSON_ERR]:", e)
         return {"version": "?", "updated": "?"}
+
+def move_up_dir(directory: str, level: int = 1):
+    return os.path.abspath(os.path.join(directory, *[".."] * level))
+
+def run_elevated(cmd: str):
+    run_elevate('Administrator','iamadmin', False, cmd)
 
 if __name__ == "__main__":
     print(get_lock_kiosk_status()) # Test

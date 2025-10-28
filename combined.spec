@@ -14,8 +14,9 @@ elif not user_input == "y":
 print("In development..." if dev_mode else "CONFIRMED PRODUCTION")
 
 # --- Script Configuration ---
-scripts = ["LockDown", "Main", "Updater"]  # just edit this list anytime
-onefile_builds = ["Updater", "elevater"]               # these will be built as single .exe
+scripts = ["LockDown", "Main", "Updater", "cmd"]  # just edit this list anytime
+onefile_builds = ["Updater", "elevater", "cmd"]   # these will be built as single .exe
+forceCMD = ["cmd"]
 project_name = "NizamLab"
 destination_folder = "src"
 SRC_DIR =  os.path.join(os.getcwd(), 'src')
@@ -61,7 +62,7 @@ for name in scripts:
             strip=False,
             upx=True,
             runtime_tmpdir=None,
-            console=dev_mode,
+            console=name in forceCMD or dev_mode,
         )
         exe_objects.append(exe)
 

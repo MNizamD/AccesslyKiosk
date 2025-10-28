@@ -148,7 +148,7 @@ def run_elevate(user: str, password: str, will_wait: bool, command: str):
         #     print("[ERROR] Blank passwords are not allowed for network logons. "
         #           "Enable them in Local Security Policy or set a password.")
         # raise ctypes.WinError(err)
-        print(ctypes.WinError(err))
+        print(ctypes.WinError(err), f"\n [COMMAND] {command}")
         sys.exit(0)
 
     if will_wait:

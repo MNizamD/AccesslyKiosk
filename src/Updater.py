@@ -8,25 +8,23 @@ import shutil
 import tkinter as tk
 from tkinter import ttk
 import lock_down_utils as ldu
+import variables as v
 
 # ---------------- CONFIG ----------------
 REPO_RAW = "https://raw.githubusercontent.com/MNizamD/LockDownKiosk/main"
 RELEASE_URL = "https://github.com/MNizamD/LockDownKiosk/raw/main/releases/latest/download"
 ZIP_BASENAME = "NizamLab"
-LOCALDATA = os.getenv("LOCALAPPDATA")
 
 ARGS_DIR = ldu.get_process_arg(sys)
-APP_DIR = ARGS_DIR if ARGS_DIR is not None else ldu.get_app_base_dir() 
-DATA_DIR = os.path.join(LOCALDATA, "NizamLab")
-FLAG_IDLE_FILE = os.path.join(DATA_DIR, "IDLE.flag")
-DETAILS_FILE = os.path.join(APP_DIR, "details.json")
+APP_DIR = ARGS_DIR if ARGS_DIR is not None else v.APP_DIR
+FLAG_IDLE_FILE = v.FLAG_IDLE_FILE
 
-LOCKDOWN_FILE_NAME = ldu.app_name("LockDown")
-LOCKDOWN_SCRIPT = os.path.join(APP_DIR, LOCKDOWN_FILE_NAME)
-MAIN_FILE_NAME = ldu.app_name("Main")
+LOCKDOWN_FILE_NAME = v.LOCKDOWN_FILE_NAME
+LOCKDOWN_SCRIPT = v.LOCKDOWN_SCRIPT
+MAIN_FILE_NAME = v.MAIN_FILE_NAME
 
 CHECK_INTERVAL = 15  # seconds
-LAST_DIR = os.path.abspath(os.path.join(APP_DIR, '..'))
+LAST_DIR = ldu.move_up_dir(APP_DIR)
 TEMP_DIR = os.path.join(LAST_DIR, "tmp_update")
 
 # ----------------------------------------
