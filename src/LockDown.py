@@ -1,4 +1,4 @@
-from os import path as ospath, makedirs, remove
+from os import path as ospath, makedirs, remove, environ
 from time import sleep
 
 # from elevate import elevate
@@ -112,8 +112,8 @@ def run_kiosk():
                 return
 
             # Replace the copy every time to ensure fresh
-            duplicate_file(UPDATER_SCRIPT, UPDATER_SCRIPT_COPY)
-            run_elevated(f'{UPDATER_SCRIPT_COPY} {APP_DIR}')
+            duplicate_file(UPDATER_SCRIPT, UPDATER_SCRIPT_COPY) 
+            run_elevated(f'{UPDATER_SCRIPT_COPY} {APP_DIR} {environ.get("USERNAME")}')
             # run_if_not_running(UPDATER_SCRIPT_COPY, is_background=True, arg=ospath.join(APP_DIR, '..'))
             run_if_not_running([MAIN_SCRIPT])
             print("Next loop")

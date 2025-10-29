@@ -37,16 +37,17 @@ def RUN_DIR():
     return get_run_dir(sys)
 # RUN_DIR = get_run_dir(getsys())
 TEMP = getenv("TEMP")
-APP_DIR = move_up_dir(RUN_DIR())
+BASE_DIR = move_up_dir(RUN_DIR())
+APP_DIR = ospath.join(BASE_DIR, 'src')
 def DATA_DIR():
     from os import makedirs
-    data_dir = ospath.join(APP_DIR, "data")
+    data_dir = ospath.join(BASE_DIR, "data")
     makedirs(data_dir, exist_ok=True)
     return data_dir
 
 def CACHE_DIR():
     from os import makedirs
-    cache_dir = ospath.join(APP_DIR, "data")
+    cache_dir = ospath.join(BASE_DIR, "cache")
     makedirs(cache_dir, exist_ok=True)
     return cache_dir
 
@@ -72,8 +73,8 @@ CMD_SCRIPT = ospath.join(APP_DIR, CMD_NAME)
 ELEVATER_NAME = app_name("elevater")
 ELEVATER_SCRIPT = ospath.join(APP_DIR, ELEVATER_NAME)
 
-DETAILS_FILE = ospath.join(APP_DIR, "details.json")
-DETAILS_FILE_COPY = ospath.join(TEMP, "details.json")
+DETAILS_FILE = ospath.join(RUN_DIR(), "details.json")
+# DETAILS_FILE_COPY = ospath.join(TEMP, "details.json")
 
 def PC_NAME():
     from socket import gethostname

@@ -7,23 +7,25 @@ import tkinter as tk
 from tkinter import ttk
 import lock_down_utils as ldu
 import variables as v
+from elevater import run_elevate
 
 # ---------------- CONFIG ----------------
-FORCE_RUN = len(argv)>1 and argv[1]=='--force'
-APP_DIR = argv[1] if len(argv)>1 and not FORCE_RUN else v.APP_DIR
+FORCE_RUN = len(argv)>2 and argv[2]=='--force'
+BASE_DIR = argv[1] if len(argv)>1 else v.BASE_DIR
+USER = argv[2] if len(argv)>2 and not FORCE_RUN else 'GVC'
 FLAG_IDLE_FILE = v.FLAG_IDLE_FILE
 
 LOCKDOWN_FILE_NAME = v.LOCKDOWN_FILE_NAME
-LOCKDOWN_SCRIPT = v.LOCKDOWN_SCRIPT
+LOCKDOWN_SCRIPT = ospath.join(BASE_DIR,'src', LOCKDOWN_FILE_NAME)
 MAIN_FILE_NAME = v.MAIN_FILE_NAME
 
 CHECK_INTERVAL = 15  # seconds
-# LAST_DIR = ldu.move_up_dir(APP_DIR)
+# LAST_DIR = ldu.move_up_dir(BASE_DIR)
 # TEMP_DIR = ospath.join(LAST_DIR, "tmp_update")
 REPO_RAW = "https://raw.githubusercontent.com/MNizamD/LockDownKiosk/main"
 RELEASE_URL = "https://github.com/MNizamD/LockDownKiosk/raw/main/releases/latest/download"
 ZIP_BASENAME = "NizamLab"
-ZIP_PATH = ospath.join(APP_DIR, "update.zip")
+ZIP_PATH = ospath.join(BASE_DIR, "update.zip")
 
 # ----------------------------------------
 
@@ -156,14 +158,14 @@ def call_for_update(local_ver:str, remote_ver:str):
         from zipper import extract_zip_dynamic, cleanup_extracted_files
         item_paths = extract_zip_dynamic(
             zip_path=ZIP_PATH,
-            extract_to=APP_DIR,
+            extract_to=BASE_DIR,
             del_zip_later=True,          # True if you want to delete the .zip after extraction
             progress_callback=ui.set_progress
         )
 
         # Step 2: Clean up old/unexpected files in that folder
         cleanup_extracted_files(
-            extract_to=APP_DIR,
+            extract_to=BASE_DIR,
             valid_paths=item_paths,
             ignore_list=[
                 "cache/",             # Whole folder to keep
@@ -178,7 +180,9 @@ def call_for_update(local_ver:str, remote_ver:str):
         ui.set_message("Restarting LockDown...")
         time.sleep(2)
         ui.close()
-        ldu.run_if_not_running([LOCKDOWN_SCRIPT], is_background=True)
+        # ldu.run_if_not_running([LOCKDOWN_SCRIPT], is_background=True)
+        run_elevate(USER,'',False, LOCKDOWN_SCRIPT)
+        ldu.run
         exit(0)
     except Exception as e:
         print(f"[call_for_update ERR]: {e}")
@@ -218,7 +222,7 @@ def updater_loop():
                 continue
                 
             else:
-                print("[=] Already up to date.")
+                print(f"[=] Version {local_ver} is already up to date.")
 
         except Exception as e:
             print(f"[ERR] {e}")
