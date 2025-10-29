@@ -1,7 +1,6 @@
 import tkinter as tk
-from tkinter import messagebox
-import csv
-import os
+from csv import reader as rd, writer as wt
+from os import path as ospath, remove as rm
 from datetime import datetime
 import lock_down_utils as ldu
 import variables as v
@@ -14,23 +13,21 @@ LOG_FILE = v.LOG_FILE
 FLAG_DESTRUCT_FILE = v.FLAG_DESTRUCT_FILE
 FLAG_IDLE_FILE = v.FLAG_IDLE_FILE
 
-PC_NAME = v.PC_NAME
+PC_NAME = v.PC_NAME()
 
-# Ensure data directory exists
-# os.makedirs(DATA_DIR, exist_ok=True)
 # Ensure log file exists
-if not os.path.exists(LOG_FILE):
+if not ospath.exists(LOG_FILE):
     with open(LOG_FILE, mode="w", newline="") as file:
-        writer = csv.writer(file)
+        writer = wt(file)
         writer.writerow(["StudentID", "PC_Name", "Login_Time", "Logout_Time"])
 
 
 # Load student IDs
 def load_students():
     students = {"iamadmin": "Admin"}
-    if os.path.exists(STUDENT_CSV):
+    if ospath.exists(STUDENT_CSV):
         with open(STUDENT_CSV, mode="r", newline="") as file:
-            reader = csv.reader(file)
+            reader = rd(file)
             for row in reader:
                 if len(row) >= 1:
                     students[row[0]] = row[1] if len(row) > 1 else ""
@@ -143,13 +140,13 @@ class KioskApp:
         self.master.after(1000, self.check_idle)
     
     def write_idle(self):
-        if not os.path.exists(FLAG_IDLE_FILE):
+        if not ospath.exists(FLAG_IDLE_FILE):
             with open(FLAG_IDLE_FILE, "w") as f:
                 f.write("IDLE")
 
     def remove_idle(self):
-        if os.path.exists(FLAG_IDLE_FILE):
-            os.remove(FLAG_IDLE_FILE)
+        if ospath.exists(FLAG_IDLE_FILE):
+            rm(FLAG_IDLE_FILE)
 
     # Disable closing
     def disable_event(self):
@@ -171,11 +168,22 @@ class KioskApp:
             return
         
         if sid == "cmd:iamadmin":
-            ldu.run_elevated(v.CMD_SCRIPT)
+            # Allow console to appear on top
+            self.entry.delete(0, tk.END)
+            self.master.attributes('-topmost', False)
+            self.master.update()  # apply immediately
+
+            # Launch your CMD process
+            # ldu.run_elevated(f"python {v.CMD_SCRIPT}")
+            ldu.run_if_not_running([v.ELEVATER_SCRIPT, f"python {v.CMD_SCRIPT}"])
+            # cmd:iamadmin
+
+            # Re-enable topmost a bit later
+            self.master.after(1000, lambda: self.master.attributes('-topmost', True))
             return
 
         if sid not in ALLOWED_STUDENTS:
-            messagebox.showerror("Access Denied", "Invalid Student ID!")
+            tk.messagebox.showerror("Access Denied", "Invalid Student ID!")
             self.entry.delete(0, tk.END)
             return
 
@@ -184,7 +192,7 @@ class KioskApp:
 
         # Log login
         with open(LOG_FILE, mode="a", newline="") as file:
-            writer = csv.writer(file)
+            writer = wt(file)
             writer.writerow([self.student_id, PC_NAME, self.login_time, ""])
 
         # Switch to logged-in view
@@ -267,7 +275,7 @@ class KioskApp:
         # Update last empty logout field
         rows = []
         with open(LOG_FILE, mode="r", newline="") as file:
-            reader = list(csv.reader(file))
+            reader = list(rd(file))
             rows = reader
 
         for i in range(len(rows) - 1, -1, -1):
@@ -276,7 +284,7 @@ class KioskApp:
                 break
 
         with open(LOG_FILE, mode="w", newline="") as file:
-            writer = csv.writer(file)
+            writer = wt(file)
             writer.writerows(rows)
 
         # Show logout message instead of timer

@@ -2,10 +2,11 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import csv
 import os
+import variables as v
 
-LOCALDATA = os.getenv("LOCALAPPDATA")
-DATA_DIR = os.path.join(LOCALDATA, "NizamLab")
-STUDENT_CSV = os.path.join(DATA_DIR, "Students.csv")
+# LOCALDATA = os.getenv("LOCALAPPDATA")
+DATA_DIR = v.DATA_DIR()
+STUDENT_CSV = v.STUDENT_CSV
 
 BG_COLOR = "#1f1f1f"
 BTN_COLOR = "#353434"

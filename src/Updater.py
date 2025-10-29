@@ -1,22 +1,16 @@
-import os
-import sys
-import json
-import zipfile
+from os import path as ospath
+from sys import argv, exit
+# import json
 import requests
 import time
-import shutil
 import tkinter as tk
 from tkinter import ttk
 import lock_down_utils as ldu
 import variables as v
 
 # ---------------- CONFIG ----------------
-REPO_RAW = "https://raw.githubusercontent.com/MNizamD/LockDownKiosk/main"
-RELEASE_URL = "https://github.com/MNizamD/LockDownKiosk/raw/main/releases/latest/download"
-ZIP_BASENAME = "NizamLab"
-
-ARGS_DIR = ldu.get_process_arg(sys)
-APP_DIR = ARGS_DIR if ARGS_DIR is not None else v.APP_DIR
+FORCE_RUN = len(argv)>1 and argv[1]=='--force'
+APP_DIR = argv[1] if len(argv)>1 and not FORCE_RUN else v.APP_DIR
 FLAG_IDLE_FILE = v.FLAG_IDLE_FILE
 
 LOCKDOWN_FILE_NAME = v.LOCKDOWN_FILE_NAME
@@ -24,8 +18,12 @@ LOCKDOWN_SCRIPT = v.LOCKDOWN_SCRIPT
 MAIN_FILE_NAME = v.MAIN_FILE_NAME
 
 CHECK_INTERVAL = 15  # seconds
-LAST_DIR = ldu.move_up_dir(APP_DIR)
-TEMP_DIR = os.path.join(LAST_DIR, "tmp_update")
+# LAST_DIR = ldu.move_up_dir(APP_DIR)
+# TEMP_DIR = ospath.join(LAST_DIR, "tmp_update")
+REPO_RAW = "https://raw.githubusercontent.com/MNizamD/LockDownKiosk/main"
+RELEASE_URL = "https://github.com/MNizamD/LockDownKiosk/raw/main/releases/latest/download"
+ZIP_BASENAME = "NizamLab"
+ZIP_PATH = ospath.join(APP_DIR, "update.zip")
 
 # ----------------------------------------
 
@@ -74,7 +72,7 @@ def get_remote_version():
 
 def is_main_idle():
     if ldu.is_process_running(MAIN_FILE_NAME):
-        return os.path.exists(FLAG_IDLE_FILE)
+        return ospath.exists(FLAG_IDLE_FILE)
     return True
 
 def is_lockdown_running():
@@ -85,76 +83,103 @@ def is_lockdown_running():
 # ================= Download + Extract ==========
 def download_with_progress(url, zip_path, ui: UpdateWindow):
     ui.set_message("Downloading update...")
-    with requests.get(url, stream=True) as r:
-        r.raise_for_status()
-        total = int(r.headers.get("content-length", 0))
-        downloaded = 0
-        with open(zip_path, "wb") as f:
-            for chunk in r.iter_content(8192):
-                if chunk:
-                    f.write(chunk)
-                    downloaded += len(chunk)
-                    if total > 0:
-                        percent = (downloaded / total) * 100
-                        ui.set_progress(percent)
-    ui.set_message("Download complete")
+    print("Download zip at", zip_path)
+    try:
+        with requests.get(url, stream=True) as r:
+            r.raise_for_status()
+            total = int(r.headers.get("content-length", 0))
+            downloaded = 0
+            with open(zip_path, "wb") as f:
+                for chunk in r.iter_content(8192):
+                    if chunk:
+                        f.write(chunk)
+                        downloaded += len(chunk)
+                        if total > 0:
+                            percent = (downloaded / total) * 100
+                            ui.set_progress(percent)
+        ui.set_message("Download complete")
+        return True
+    except Exception as e:
+        print(f"[ERROR]@download_with_progress: {e}")
+        return False
 
-def extract_zip(zip_path, temp_dir, ui: UpdateWindow):
-    ui.set_message("Extracting update...")
-    if os.path.exists(temp_dir):
-        shutil.rmtree(temp_dir)
-    os.makedirs(temp_dir, exist_ok=True)
+# def extract_zip(zip_path, temp_dir, ui: UpdateWindow):
+#     ui.set_message("Extracting update...")
+#     if ospath.exists(temp_dir):
+#         shutil.rmtree(temp_dir)
+#     makedirs(temp_dir, exist_ok=True)
 
-    with zipfile.ZipFile(zip_path, "r") as zf:
-        total = len(zf.infolist())
-        for i, member in enumerate(zf.infolist(), 1):
-            zf.extract(member, temp_dir)
-            ui.set_progress(i / total * 100)
-    os.remove(zip_path)
-    ui.set_message("Extraction complete")
+#         # print(f"Progress: {pct:.2f}%")
 
-def replace_old_with_temp(app_dir, temp_dir, ui: UpdateWindow):
-    ui.set_message("Applying update...")
+#     with zipfile.ZipFile(zip_path, "r") as zf:
+#         total = len(zf.infolist())
+#         for i, member in enumerate(zf.infolist(), 1):
+#             zf.extract(member, temp_dir)
+#             ui.set_progress(i / total * 100)
+#     rm(zip_path)
+#     ui.set_message("Extraction complete")
 
-    backup_dir = app_dir + "_old"
-    if os.path.exists(backup_dir):
-        print("Removing old backup...")
-        shutil.rmtree(backup_dir)
-    if os.path.exists(app_dir):
-        print("Creating backup folder...")
-        os.rename(app_dir, backup_dir)
+# def replace_old_with_temp(app_dir, temp_dir, ui: UpdateWindow):
+#     ui.set_message("Applying update...")
 
-    print("Replacing folder...")
-    os.rename(temp_dir, app_dir)
-    shutil.rmtree(backup_dir) #, ignore_errors=True)
+#     backup_dir = app_dir + "_old"
+#     if ospath.exists(backup_dir):
+#         print("Removing old backup...")
+#         shutil.rmtree(backup_dir)
+#     if ospath.exists(app_dir):
+#         print("Creating backup folder...")
+#         rn(app_dir, backup_dir)
 
-    ui.set_message("Update applied")
+#     print("Replacing folder...")
+#     rn(temp_dir, app_dir)
+#     shutil.rmtree(backup_dir) #, ignore_errors=True)
+
+#     ui.set_message("Update applied")
+
 
 def call_for_update(local_ver:str, remote_ver:str):
     try:
         print("Update available")
         ui = UpdateWindow()
         ui.set_message(f"Updating {local_ver} → {remote_ver}")
-
         zip_url = f"{RELEASE_URL}/{ZIP_BASENAME}-{remote_ver}.zip"
-        zip_path = os.path.join(LAST_DIR, "update.zip")
 
-        download_with_progress(zip_url, zip_path, ui)
+        while not download_with_progress(zip_url, ZIP_PATH, ui):
+            time.sleep(CHECK_INTERVAL)
 
         while not is_main_idle():
             print("Main is in used, unsafe to update")
             time.sleep(CHECK_INTERVAL)
 
         ldu.kill_processes([LOCKDOWN_FILE_NAME, MAIN_FILE_NAME])
-        extract_zip(zip_path, TEMP_DIR, ui)
-        replace_old_with_temp(APP_DIR, TEMP_DIR, ui)
+        # Step 1: Extract the zip file
+        from zipper import extract_zip_dynamic, cleanup_extracted_files
+        item_paths = extract_zip_dynamic(
+            zip_path=ZIP_PATH,
+            extract_to=APP_DIR,
+            del_zip_later=True,          # True if you want to delete the .zip after extraction
+            progress_callback=ui.set_progress
+        )
+
+        # Step 2: Clean up old/unexpected files in that folder
+        cleanup_extracted_files(
+            extract_to=APP_DIR,
+            valid_paths=item_paths,
+            ignore_list=[
+                "cache/",             # Whole folder to keep
+                "data/",              # Another folder to ignore
+                # "logs/log.txt"        # Specific file to keep
+            ]
+        )
+        # extract_zip(zip_path, TEMP_DIR, ui)
+        # replace_old_with_temp(APP_DIR, TEMP_DIR, ui)
 
         ui.set_progress(100)
         ui.set_message("Restarting LockDown...")
         time.sleep(2)
         ui.close()
-        ldu.run_if_not_running(LOCKDOWN_SCRIPT, is_background=True)
-        sys.exit(0)
+        ldu.run_if_not_running([LOCKDOWN_SCRIPT], is_background=True)
+        exit(0)
     except Exception as e:
         print(f"[call_for_update ERR]: {e}")
 
@@ -165,9 +190,10 @@ def call_for_update(local_ver:str, remote_ver:str):
 # ================= Main Loop ==================
 def updater_loop():
     while True:
-        if not is_lockdown_running():
+        print("FORCE_RUN", FORCE_RUN)
+        if not FORCE_RUN and not is_lockdown_running():
             print(f"{LOCKDOWN_FILE_NAME} not running → shutting down updater.")
-            sys.exit(0)
+            exit(0)
 
         if not is_main_idle():
             print("Main is in used, unsafe to update")

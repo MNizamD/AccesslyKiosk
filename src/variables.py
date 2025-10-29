@@ -1,57 +1,83 @@
-import os
-import socket
-import sys
+from os import path as ospath, getenv
 
-def get_app_base_dir(sys = sys):
+def is_frozen(sys):
+    return getattr(sys, "frozen", False)
+
+def get_run_dir(sys):
     """
     Return the directory that contains the running application.
     Works for:
       - dev mode (python script): returns folder of this .py file
       - frozen mode (PyInstaller one-dir or one-file): returns folder of the exe
     """
-    if getattr(sys, "frozen", False):
+    if is_frozen(sys):
         # Frozen by PyInstaller: sys.executable -> path to the running .exe
-        return os.path.dirname(sys.executable)
+        return ospath.dirname(sys.executable)
     else:
         # Running as plain python script
-        return os.path.dirname(os.path.abspath(__file__))
+        return ospath.dirname(ospath.abspath(__file__))
 
 def app_name(name: str):
-    if getattr(sys, "frozen", False):
+    import sys
+    if is_frozen(sys):
         return f"{name}.exe"
     return f"{name}.py"
 
-BASE_DIR = get_app_base_dir()
-# LOCALDATA = os.getenv("LOCALAPPDATA")
-PROGRAMDATA = os.getenv("PROGRAMDATA")
-APP_DIR = get_app_base_dir()
-TEMP = os.getenv("TEMP")
-DATA_DIR = os.path.join(PROGRAMDATA, "NizamLab", "data")
-CACHE_DIR = os.path.join(PROGRAMDATA, "NizamLab", "cache")   # data dir (writable)
-# Ensure directory exists
-os.makedirs(DATA_DIR, exist_ok=True)
-os.makedirs(CACHE_DIR, exist_ok=True)
-# DATA_DIR = os.path.join(LOCALDATA, "NizamLab")   # data dir (writable)
+def move_up_dir(directory: str, level: int = 1):
+    if directory is None:
+        print("No directory to move up")
+        return None
+    return ospath.abspath(ospath.join(directory, *[".."] * level))
 
-STUDENT_CSV = os.path.join(DATA_DIR, "Students.csv")
-LOG_FILE = os.path.join(DATA_DIR, "StudentLogs.csv")
-FLAG_DESTRUCT_FILE = os.path.join(DATA_DIR, "STOP_LAUNCHER.flag")
-FLAG_IDLE_FILE = os.path.join(DATA_DIR, "IDLE.flag")
-CACHE_FILE = os.path.join(CACHE_DIR, "lock_kiosk_status.json")
+# LOCALDATA = getenv("LOCALAPPDATA")
+# PROGRAMDATA = getenv("PROGRAMDATA")
+# BASE_DIR = PROGRAMDATA
+def RUN_DIR():
+    import sys
+    return get_run_dir(sys)
+# RUN_DIR = get_run_dir(getsys())
+TEMP = getenv("TEMP")
+APP_DIR = move_up_dir(RUN_DIR())
+def DATA_DIR():
+    from os import makedirs
+    data_dir = ospath.join(APP_DIR, "data")
+    makedirs(data_dir, exist_ok=True)
+    return data_dir
+
+def CACHE_DIR():
+    from os import makedirs
+    cache_dir = ospath.join(APP_DIR, "data")
+    makedirs(cache_dir, exist_ok=True)
+    return cache_dir
+
+STUDENT_CSV = ospath.join(DATA_DIR(), "Students.csv")
+LOG_FILE = ospath.join(DATA_DIR(), "StudentLogs.csv")
+FLAG_DESTRUCT_FILE = ospath.join(DATA_DIR(), "STOP_LAUNCHER.flag")
+FLAG_IDLE_FILE = ospath.join(DATA_DIR(), "IDLE.flag")
+CACHE_FILE = ospath.join(CACHE_DIR(), "lock_kiosk_status.json")
 
 LOCKDOWN_FILE_NAME = app_name("LockDown")
-LOCKDOWN_SCRIPT = os.path.join(APP_DIR, LOCKDOWN_FILE_NAME)
+LOCKDOWN_SCRIPT = ospath.join(APP_DIR, LOCKDOWN_FILE_NAME)
 
 MAIN_FILE_NAME = app_name("Main")
-MAIN_SCRIPT = os.path.join(APP_DIR, MAIN_FILE_NAME)
+MAIN_SCRIPT = ospath.join(APP_DIR, MAIN_FILE_NAME)
 
-# ELEVATE_SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'elevater.py')
-UPDATER_SCRIPT = os.path.join(APP_DIR, app_name("Updater"))
-UPDATER_SCRIPT_COPY = os.path.join(TEMP, app_name("Updater_copy"))
+# ELEVATE_SCRIPT = ospath.join(ospath.dirname(ospath.abspath(__file__)), 'elevater.py')
+UPDATER_SCRIPT = ospath.join(APP_DIR, app_name("Updater"))
+UPDATER_SCRIPT_COPY = ospath.join(TEMP, app_name("Updater_copy"))
 
-CMD_SCRIPT = app_name("cmd")
+CMD_NAME = app_name("cmd")
+CMD_SCRIPT = ospath.join(APP_DIR, CMD_NAME)
 
-DETAILS_FILE = os.path.join(APP_DIR, "details.json")
-DETAILS_FILE_COPY = os.path.join(TEMP, "details.json")
+ELEVATER_NAME = app_name("elevater")
+ELEVATER_SCRIPT = ospath.join(APP_DIR, ELEVATER_NAME)
 
-PC_NAME = socket.gethostname()
+DETAILS_FILE = ospath.join(APP_DIR, "details.json")
+DETAILS_FILE_COPY = ospath.join(TEMP, "details.json")
+
+def PC_NAME():
+    from socket import gethostname
+    return gethostname()
+
+if __name__ == "__main__":
+    print(APP_DIR)
