@@ -13,7 +13,7 @@ from elevater import run_elevate
 FORCE_RUN = len(argv)>2 and argv[2]=='--force'
 BASE_DIR = argv[1] if len(argv)>1 else v.BASE_DIR
 USER = argv[2] if len(argv)>2 and not FORCE_RUN else 'GVC'
-FLAG_IDLE_FILE = v.FLAG_IDLE_FILE
+FLAG_IDLE_FILE = ospath.join(f'C:\\Users\\{USER}\\AppData\\Local', v.PROJECT_NAME,"IDLE.flag")
 
 LOCKDOWN_FILE_NAME = v.LOCKDOWN_FILE_NAME
 LOCKDOWN_SCRIPT = ospath.join(BASE_DIR,'src', LOCKDOWN_FILE_NAME)
@@ -24,7 +24,7 @@ CHECK_INTERVAL = 15  # seconds
 # TEMP_DIR = ospath.join(LAST_DIR, "tmp_update")
 REPO_RAW = "https://raw.githubusercontent.com/MNizamD/LockDownKiosk/main"
 RELEASE_URL = "https://github.com/MNizamD/LockDownKiosk/raw/main/releases/latest/download"
-ZIP_BASENAME = "NizamLab"
+ZIP_BASENAME = v.PROJECT_NAME
 ZIP_PATH = ospath.join(BASE_DIR, "update.zip")
 
 # ----------------------------------------
@@ -153,7 +153,7 @@ def call_for_update(local_ver:str, remote_ver:str):
             print("Main is in used, unsafe to update")
             time.sleep(CHECK_INTERVAL)
 
-        ldu.kill_processes([LOCKDOWN_FILE_NAME, MAIN_FILE_NAME])
+        ldu.kill_processes([LOCKDOWN_FILE_NAME, MAIN_FILE_NAME], USER)
         # Step 1: Extract the zip file
         from zipper import extract_zip_dynamic, cleanup_extracted_files
         item_paths = extract_zip_dynamic(

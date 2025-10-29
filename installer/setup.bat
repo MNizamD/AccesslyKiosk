@@ -17,7 +17,7 @@ if %errorlevel% neq 0 (
 set TASKNAME=LockDownKiosk
 set USERONLY=GVC
 @REM set APPDIR=C:\Users\%USERONLY%\AppData\Roaming\NizamLab
-set APPDIR=E:\Miscellaneous\NizamLab
+set APPDIR=%PROGRAMDATA%\NizamLab
 set APPNAME=LockDown.exe
 
 :: Paths

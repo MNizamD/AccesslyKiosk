@@ -29,27 +29,30 @@ def move_up_dir(directory: str, level: int = 1):
         return None
     return ospath.abspath(ospath.join(directory, *[".."] * level))
 
-# LOCALDATA = getenv("LOCALAPPDATA")
+PROJECT_NAME = 'NizamLab'
+LOCALDATA = getenv("LOCALAPPDATA")
+TEMP = getenv("TEMP")
 # PROGRAMDATA = getenv("PROGRAMDATA")
 # BASE_DIR = PROGRAMDATA
 def RUN_DIR():
     import sys
     return get_run_dir(sys)
 # RUN_DIR = get_run_dir(getsys())
-TEMP = getenv("TEMP")
 BASE_DIR = move_up_dir(RUN_DIR())
 APP_DIR = ospath.join(BASE_DIR, 'src')
 def DATA_DIR():
-    from os import makedirs
-    data_dir = ospath.join(BASE_DIR, "data")
-    makedirs(data_dir, exist_ok=True)
-    return data_dir
+    # from os import makedirs
+    # data_dir = ospath.join(BASE_DIR, "data")
+    # makedirs(data_dir, exist_ok=True)
+    # return data_dir
+    return ospath.join(LOCALDATA, PROJECT_NAME, "data")
 
 def CACHE_DIR():
-    from os import makedirs
-    cache_dir = ospath.join(BASE_DIR, "cache")
-    makedirs(cache_dir, exist_ok=True)
-    return cache_dir
+    # from os import makedirs
+    # cache_dir = ospath.join(BASE_DIR, "cache")
+    # makedirs(cache_dir, exist_ok=True)
+    # return cache_dir
+    return ospath.join(LOCALDATA, PROJECT_NAME, "cache")
 
 STUDENT_CSV = ospath.join(DATA_DIR(), "Students.csv")
 LOG_FILE = ospath.join(DATA_DIR(), "StudentLogs.csv")
