@@ -40,6 +40,7 @@ def is_process_running(name: str) -> bool:
             continue
     return False
 
+
 def run_background(cmd: list):
     from tempfile import gettempdir
     from subprocess import Popen, DETACHED_PROCESS, CREATE_NEW_PROCESS_GROUP
@@ -93,43 +94,17 @@ def run_if_not_running(cmd: list, is_background = False):
         print(f"[INFO] {exe_name} already running.")
     return None
 
-def kill_processes(names: list[str], username: str = None):
-    """
-    Kills processes whose name matches any in `names`.
-    If `username` is provided, only kills processes owned by that user.
-    """
+def kill_processes(names: list[str]):
     from time import sleep
-    from psutil import process_iter, NoSuchProcess, AccessDenied
-
-    killed = []
-
-    for proc in process_iter(["name", "username"]):
-        try:
-            pname = (proc.info["name"] or "").lower()
-            puser = proc.info.get("username", "")
-
-            # Skip if process name doesn't match
-            if not any(pname == n.lower() for n in names):
-                continue
-
-            # Skip if user filter is active and not matching
-            if username and (puser.lower() != username.lower()):
-                continue
-
-            proc.kill()
-            killed.append(f"{pname} ({puser})")
-            print(f"[-] Killed: {pname} | User: {puser}")
-
-            sleep(0.3)  # small delay for safety
-
-        except (NoSuchProcess, AccessDenied):
-            continue
-        except Exception as e:
-            print(f"[!] Error killing process: {e}")
-
-    print(f"[*] Done. Total killed: {len(killed)}")
-    return killed
-
+    from psutil import process_iter, NoSuchProcess
+    for n in names:
+        for proc in process_iter(["name"]):
+            try:
+                if proc.info["name"].lower() == n.lower():
+                    proc.kill()
+                    sleep(3)
+            except NoSuchProcess:
+                pass
 
 def duplicate_file(src:str, cpy:str):
     try:

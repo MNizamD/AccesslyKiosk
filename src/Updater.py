@@ -13,7 +13,7 @@ from elevater import run_elevate
 FORCE_RUN = len(argv)>2 and argv[2]=='--force'
 BASE_DIR = argv[1] if len(argv)>1 else v.BASE_DIR
 USER = argv[2] if len(argv)>2 and not FORCE_RUN else 'GVC'
-FLAG_IDLE_FILE = ospath.join(f'C:\\Users\\{USER}\\AppData\\Local', v.PROJECT_NAME,"IDLE.flag")
+FLAG_IDLE_FILE = ospath.join(rf'C:\Users\{USER}\AppData\Local\Temp', v.PROJECT_NAME,"IDLE.flag")
 
 LOCKDOWN_FILE_NAME = v.LOCKDOWN_FILE_NAME
 LOCKDOWN_SCRIPT = ospath.join(BASE_DIR,'src', LOCKDOWN_FILE_NAME)
@@ -31,11 +31,15 @@ ZIP_PATH = ospath.join(BASE_DIR, "update.zip")
 
 # ================= Tkinter UI =================
 class UpdateWindow:
+    def disable_event(self):
+        print("Surpressed close")
+
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("Updater")
         self.root.geometry("400x150")
         self.root.resizable(False, False)
+        self.root.protocol("WM_DELETE_WINDOW", self.disable_event)
 
         self.label = tk.Label(self.root, text="Waiting...", font=("Arial", 12))
         self.label.pack(pady=15)
@@ -153,7 +157,7 @@ def call_for_update(local_ver:str, remote_ver:str):
             print("Main is in used, unsafe to update")
             time.sleep(CHECK_INTERVAL)
 
-        ldu.kill_processes([LOCKDOWN_FILE_NAME, MAIN_FILE_NAME], USER)
+        ldu.kill_processes([LOCKDOWN_FILE_NAME, MAIN_FILE_NAME])
         # Step 1: Extract the zip file
         from zipper import extract_zip_dynamic, cleanup_extracted_files
         item_paths = extract_zip_dynamic(
@@ -194,7 +198,8 @@ def call_for_update(local_ver:str, remote_ver:str):
 # ================= Main Loop ==================
 def updater_loop():
     while True:
-        print("FORCE_RUN", FORCE_RUN)
+        if FORCE_RUN:
+            print("FORCE RUN")
         if not FORCE_RUN and not is_lockdown_running():
             print(f"{LOCKDOWN_FILE_NAME} not running → shutting down updater.")
             exit(0)
@@ -231,4 +236,10 @@ def updater_loop():
 
 if __name__ == "__main__":
     ldu.check_admin("Updater")
+    # ldu.kill_processes(['Main.exe'])
+    # print(f"{MAIN_FILE_NAME} running:", ldu.is_process_running('Main.exe'))
+    # print(f"{FLAG_IDLE_FILE}:", ospath.exists(FLAG_IDLE_FILE))
+    # print(is_main_idle())
+    # input("C...")
+    # exit(0)
     updater_loop()

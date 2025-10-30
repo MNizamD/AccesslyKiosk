@@ -12,6 +12,7 @@ STUDENT_CSV = v.STUDENT_CSV
 LOG_FILE = v.LOG_FILE
 FLAG_DESTRUCT_FILE = v.FLAG_DESTRUCT_FILE
 FLAG_IDLE_FILE = v.FLAG_IDLE_FILE
+CHECK_INTERVAL = 15
 
 PC_NAME = v.PC_NAME()
 
@@ -131,7 +132,7 @@ class KioskApp:
     def check_idle(self):
         """Check every second if user has been idle > 60s"""
         elapsed = (datetime.now() - self.last_activity).seconds
-        if elapsed >= 30:  # idle threshold
+        if elapsed >= CHECK_INTERVAL:  # idle threshold
             self.write_idle()
             # print("Idle")
         # else:

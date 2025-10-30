@@ -31,7 +31,9 @@ def move_up_dir(directory: str, level: int = 1):
 
 PROJECT_NAME = 'NizamLab'
 LOCALDATA = getenv("LOCALAPPDATA")
+LOCALDATA_DIR = ospath.join(LOCALDATA, PROJECT_NAME)
 TEMP = getenv("TEMP")
+
 # PROGRAMDATA = getenv("PROGRAMDATA")
 # BASE_DIR = PROGRAMDATA
 def RUN_DIR():
@@ -41,23 +43,27 @@ def RUN_DIR():
 BASE_DIR = move_up_dir(RUN_DIR())
 APP_DIR = ospath.join(BASE_DIR, 'src')
 def DATA_DIR():
-    # from os import makedirs
-    # data_dir = ospath.join(BASE_DIR, "data")
-    # makedirs(data_dir, exist_ok=True)
-    # return data_dir
-    return ospath.join(LOCALDATA, PROJECT_NAME, "data")
+    from os import makedirs
+    data_dir = ospath.join(LOCALDATA_DIR, "data")
+    makedirs(data_dir, exist_ok=True)
+    return data_dir
 
 def CACHE_DIR():
-    # from os import makedirs
-    # cache_dir = ospath.join(BASE_DIR, "cache")
-    # makedirs(cache_dir, exist_ok=True)
-    # return cache_dir
-    return ospath.join(LOCALDATA, PROJECT_NAME, "cache")
+    from os import makedirs
+    cache_dir = ospath.join(LOCALDATA_DIR, "cache")
+    makedirs(cache_dir, exist_ok=True)
+    return cache_dir
+
+def TEMP_DIR():
+    from os import makedirs
+    temp_dir = ospath.join(TEMP,PROJECT_NAME)
+    makedirs(temp_dir, exist_ok=True)
+    return temp_dir
 
 STUDENT_CSV = ospath.join(DATA_DIR(), "Students.csv")
 LOG_FILE = ospath.join(DATA_DIR(), "StudentLogs.csv")
-FLAG_DESTRUCT_FILE = ospath.join(DATA_DIR(), "STOP_LAUNCHER.flag")
-FLAG_IDLE_FILE = ospath.join(DATA_DIR(), "IDLE.flag")
+FLAG_DESTRUCT_FILE = ospath.join(TEMP_DIR(), "STOP_LAUNCHER.flag")
+FLAG_IDLE_FILE = ospath.join(TEMP_DIR(), "IDLE.flag")
 CACHE_FILE = ospath.join(CACHE_DIR(), "lock_kiosk_status.json")
 
 LOCKDOWN_FILE_NAME = app_name("LockDown")

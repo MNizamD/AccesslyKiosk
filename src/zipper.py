@@ -55,12 +55,6 @@ def extract_zip_dynamic(
             print(f"[!] Could not delete zip: {e}")
 
     print(f"[*] Extraction complete to: {extract_to}")
-    print("Extracted")
-    paths = list(extracted_paths)
-    paths.sort()
-    for path in paths:
-        print(path)
-    input("Press any to continue...")
     return extracted_paths
 
 
@@ -87,17 +81,10 @@ def cleanup_extracted_files(
 
             # Skip ignored files/folders
             if any(rel_path_norm.startswith(ign) for ign in ignore_set):
-                print("Ignored:", rel_path_norm)
                 continue
 
             # If not part of ZIP contents, remove
-            # print(f"REL:{rel_path}\n?:{rel_path not in valid_paths}")
-            # print(f"REL:{rel_path.replace("\\", "/")}\n?:{rel_path.replace("\\", "/") not in valid_paths}")
-            # input("D...")
             if rel_path not in valid_paths and rel_path.replace("\\", "/") not in valid_paths:
-                if rel_path.endswith("cmd.exe"):
-                    print(valid_paths)
-                    input("C..")
                 try:
                     if ospath.isdir(abs_path):
                         rmtree(abs_path)
