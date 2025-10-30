@@ -310,9 +310,9 @@ def get_details_json():
         return {"version": "?", "updated": "?"}
 
 
-def run_elevated(cmd: str):
+def run_elevated(cmd: str, wait: bool = False):
     from elevater import run_elevate
-    run_elevate('Administrator','iamadmin', False, cmd)
+    run_elevate('Administrator','iamadmin', False, cmd, will_wait=wait)
 
 if __name__ == "__main__":
     print(get_lock_kiosk_status()) # Test

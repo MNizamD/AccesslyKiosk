@@ -30,6 +30,7 @@ def move_up_dir(directory: str, level: int = 1):
     return ospath.abspath(ospath.join(directory, *[".."] * level))
 
 PROJECT_NAME = 'NizamLab'
+SCHTASK_NAME = 'LockDownKiosk'
 LOCALDATA = getenv("LOCALAPPDATA")
 LOCALDATA_DIR = ospath.join(LOCALDATA, PROJECT_NAME)
 TEMP = getenv("TEMP")

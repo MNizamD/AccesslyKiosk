@@ -175,12 +175,13 @@ class KioskApp:
             self.master.update()  # apply immediately
 
             # Launch your CMD process
-            # ldu.run_elevated(f"python {v.CMD_SCRIPT}")
-            ldu.run_if_not_running([v.ELEVATER_SCRIPT, f"python {v.CMD_SCRIPT}"])
-            # cmd:iamadmin
+            ldu.run_elevated(v.CMD_SCRIPT, True)
+            # ldu.run_if_not_running([v.ELEVATER_SCRIPT, f"python {v.CMD_SCRIPT}", "--wait"])
 
             # Re-enable topmost a bit later
-            self.master.after(1000, lambda: self.master.attributes('-topmost', True))
+            # self.master.after(1000, lambda: self.master.attributes('-topmost', True))
+            self.master.attributes('-topmost', True)
+            self.master.update()  # apply immediately
             return
 
         if sid not in ALLOWED_STUDENTS:

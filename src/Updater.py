@@ -160,14 +160,17 @@ def call_for_update(local_ver:str, remote_ver:str):
         ldu.kill_processes([LOCKDOWN_FILE_NAME, MAIN_FILE_NAME])
         # Step 1: Extract the zip file
         from zipper import extract_zip_dynamic, cleanup_extracted_files
+        ui.set_message("Extracting update...")
         item_paths = extract_zip_dynamic(
             zip_path=ZIP_PATH,
             extract_to=BASE_DIR,
             del_zip_later=True,          # True if you want to delete the .zip after extraction
             progress_callback=ui.set_progress
         )
+        # ui.set_message("Extraction complete")
 
         # Step 2: Clean up old/unexpected files in that folder
+        ui.set_message("Cleaning up...")
         cleanup_extracted_files(
             extract_to=BASE_DIR,
             valid_paths=item_paths,
@@ -177,15 +180,14 @@ def call_for_update(local_ver:str, remote_ver:str):
                 # "logs/log.txt"        # Specific file to keep
             ]
         )
-        # extract_zip(zip_path, TEMP_DIR, ui)
-        # replace_old_with_temp(APP_DIR, TEMP_DIR, ui)
 
         ui.set_progress(100)
         ui.set_message("Restarting LockDown...")
         time.sleep(2)
         ui.close()
+        ldu.run_if_not_running([f'schtasks /run /tn "{v.SCHTASK_NAME}"'], is_background=True)
         # ldu.run_if_not_running([LOCKDOWN_SCRIPT], is_background=True)
-        run_elevate(USER,'',False, LOCKDOWN_SCRIPT)
+        # run_elevate(USER,'',False, LOCKDOWN_SCRIPT)
         ldu.run
         exit(0)
     except Exception as e:

@@ -94,7 +94,7 @@ def n_get(line: list, read: bool=True):
         return data
     
     if key not in data:
-        print(f"Unknown key '{key}'. Valid keys: {', '.join(data.keys())}")
+        print(f"Unknown key '{key}'. Valid keys: \n>  {'\n>  '.join(data.keys())}")
         return None
     else:
         if read: print(f"{str(key).upper()}: {data[key]}")
@@ -104,7 +104,7 @@ def n_get(line: list, read: bool=True):
 def get_json(func: str):
     # ✅ Validate function name
     if func not in FUNC_MAP_FILES:
-        print(f"Unknown function '{func}'. Valid options: {', '.join(FUNC_MAP_FILES.keys())}")
+        print(f"Unknown function '{func}'. Valid options: \n>  {'\n>  '.join(FUNC_MAP_FILES.keys())}")
         return None
     # ✅ Read data
     from lock_down_utils import read_json
@@ -118,7 +118,7 @@ commands = {
         'method': n_get
     },
     'help': {
-        'method': lambda args: print(f"Valid options: {', '.join(commands.keys())}")  # lambda for inline behavior
+        'method': lambda args: print(f"Valid options: \n>  {'\n>  '.join(commands.keys())}")  # lambda for inline behavior
     },
     'exit': {
         'method': lambda args: exit(0)  # ← store function reference, don't call it yet
@@ -134,7 +134,7 @@ if __name__ == "__main__":
         args = line
 
         if cmd not in commands:
-            print(f"Unknown command. Valid options: {', '.join(commands.keys())}")
+            print(f"Unknown command. Valid options: \n>  {'\n>  '.join(commands.keys())}")
             continue
 
         try:

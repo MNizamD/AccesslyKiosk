@@ -8,7 +8,7 @@ from lock_down_utils import get_lock_kiosk_status, duplicate_file, run_if_not_ru
 import variables as v
 
 # ---------------- CONFIG ----------------
-APP_DIR = v.APP_DIR   # app install dir (read-only)
+BASE_DIR = v.BASE_DIR   # app install dir (read-only)
 LOG_FILE = v.LOG_FILE
 FLAG_DESTRUCT_FILE = v.FLAG_DESTRUCT_FILE
 
@@ -57,11 +57,13 @@ def clean_destruction(msg):
     remove(FLAG_DESTRUCT_FILE)
 
 # ---------------- LAUNCHER ----------------
+def run_updater():
+    duplicate_file(UPDATER_SCRIPT, UPDATER_SCRIPT_COPY) 
+    run_elevated(f'{UPDATER_SCRIPT_COPY} {BASE_DIR} {environ.get("USERNAME")}')
 
 def emergency_update():
     print("[!] Detected crash loop — running emergency update")
-    duplicate_file(UPDATER_SCRIPT, UPDATER_SCRIPT_COPY)
-    run_if_not_running(UPDATER_SCRIPT_COPY, is_background=True, arg=APP_DIR)
+    run_updater()
     sleep(20)
 
 
@@ -112,8 +114,7 @@ def run_kiosk():
                 return
 
             # Replace the copy every time to ensure fresh
-            duplicate_file(UPDATER_SCRIPT, UPDATER_SCRIPT_COPY) 
-            run_elevated(f'{UPDATER_SCRIPT_COPY} {APP_DIR} {environ.get("USERNAME")}')
+            run_updater()
             # run_if_not_running(UPDATER_SCRIPT_COPY, is_background=True, arg=ospath.join(APP_DIR, '..'))
             run_if_not_running([MAIN_SCRIPT])
             print("Next loop")
