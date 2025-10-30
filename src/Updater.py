@@ -185,7 +185,8 @@ def call_for_update(local_ver:str, remote_ver:str):
         ui.set_message("Restarting LockDown...")
         time.sleep(2)
         ui.close()
-        ldu.run_if_not_running([f'schtasks /run /tn "{v.SCHTASK_NAME}"'], is_background=True)
+        # ldu.run_if_not_running([f'schtasks /run /tn "{v.SCHTASK_NAME}"'], is_background=True)
+        ldu.run_elevated(f'schtasks /run /tn "{v.SCHTASK_NAME}"')
         # ldu.run_if_not_running([LOCKDOWN_SCRIPT], is_background=True)
         # run_elevate(USER,'',False, LOCKDOWN_SCRIPT)
         ldu.run
