@@ -312,7 +312,7 @@ def get_details_json():
 
 def run_elevated(cmd: str, wait: bool = False):
     from elevater import run_elevate
-    run_elevate('Administrator','iamadmin', False, cmd, will_wait=wait)
+    run_elevate('Administrator','iamadmin', wait, cmd)
 
 if __name__ == "__main__":
     print(get_lock_kiosk_status()) # Test
