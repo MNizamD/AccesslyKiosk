@@ -83,7 +83,7 @@ CMD_SCRIPT = ospath.join(APP_DIR, CMD_NAME)
 ELEVATER_NAME = app_name("elevater")
 ELEVATER_SCRIPT = ospath.join(APP_DIR, ELEVATER_NAME)
 
-DETAILS_FILE = ospath.join(RUN_DIR(), "details.json")
+DETAILS_FILE = ospath.join(APP_DIR, "details.json")
 # DETAILS_FILE_COPY = ospath.join(TEMP, "details.json")
 
 def PC_NAME():

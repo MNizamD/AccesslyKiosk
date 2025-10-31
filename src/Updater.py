@@ -1,26 +1,57 @@
 from os import path as ospath
 from sys import argv, exit
 # import json
-import requests
-import time
+# import requests
+# import time
 import tkinter as tk
 from tkinter import ttk
-import lock_down_utils as ldu
+from lock_down_utils import get_details_json, run_elevated, is_process_running, check_admin, kill_processes, download
 import variables as v
-from elevater import run_elevate
+
+def parse_args():
+    args = argv[1:]
+    base_dir = v.BASE_DIR
+    user = 'GVC'
+    force_run = False
+    i = 0
+
+    while i < len(args):
+        arg = args[i].lower()
+        if arg == "--user":
+            if i + 1 < len(args) and not args[i + 1].startswith("--"):
+                user = args[i + 1]
+                i += 1
+            else:
+                print("[ERROR] Missing value for --user")
+                exit(1)
+        elif arg == "--dir":
+            if i + 1 < len(args) and not args[i + 1].startswith("--"):
+                base_dir = args[i + 1]
+                i += 1
+            else:
+                print("[ERROR] Missing value for --dir")
+                exit(1)
+        elif arg == "--force":
+            force_run = True
+        i += 1
+
+    return user, base_dir, force_run
+    # --dir C:\Users\Marohom\Documents\NizamLab\playground --user GVC --force
 
 # ---------------- CONFIG ----------------
-FORCE_RUN = len(argv)>2 and argv[2]=='--force'
-BASE_DIR = argv[1] if len(argv)>1 else v.BASE_DIR
-USER = argv[2] if len(argv)>2 and not FORCE_RUN else 'GVC'
+# FORCE_RUN = len(argv)>2 and argv[2]=='--force'
+# BASE_DIR = argv[1] if len(argv)>1 else v.BASE_DIR
+# USER = argv[2] if len(argv)>2 and not FORCE_RUN else 'GVC'
+USER, BASE_DIR, FORCE_RUN = parse_args()
 FLAG_IDLE_FILE = ospath.join(rf'C:\Users\{USER}\AppData\Local\Temp', v.PROJECT_NAME,"IDLE.flag")
+DETAILS_FILE = ospath.join(BASE_DIR, 'src', "details.json")
 
 LOCKDOWN_FILE_NAME = v.LOCKDOWN_FILE_NAME
 LOCKDOWN_SCRIPT = ospath.join(BASE_DIR,'src', LOCKDOWN_FILE_NAME)
 MAIN_FILE_NAME = v.MAIN_FILE_NAME
 
 CHECK_INTERVAL = 15  # seconds
-# LAST_DIR = ldu.move_up_dir(BASE_DIR)
+# LAST_DIR = move_up_dir(BASE_DIR)
 # TEMP_DIR = ospath.join(LAST_DIR, "tmp_update")
 REPO_RAW = "https://raw.githubusercontent.com/MNizamD/LockDownKiosk/main"
 RELEASE_URL = "https://github.com/MNizamD/LockDownKiosk/raw/main/releases/latest/download"
@@ -67,9 +98,10 @@ class UpdateWindow:
 
 
 def get_remote_version():
+    from requests import get
     try:
         url = f"{REPO_RAW}/src/details.json"
-        r = requests.get(url, timeout=10)
+        r = get(url, timeout=10)
         r.raise_for_status()
         return r.json()
     except Exception as e:
@@ -77,37 +109,37 @@ def get_remote_version():
         return { "version": "? remote" }
 
 def is_main_idle():
-    if ldu.is_process_running(MAIN_FILE_NAME):
+    if is_process_running(MAIN_FILE_NAME):
         return ospath.exists(FLAG_IDLE_FILE)
     return True
 
 def is_lockdown_running():
-    return ldu.is_process_running(LOCKDOWN_FILE_NAME)
+    return is_process_running(LOCKDOWN_FILE_NAME)
 # ==============================================
 
 
 # ================= Download + Extract ==========
-def download_with_progress(url, zip_path, ui: UpdateWindow):
-    ui.set_message("Downloading update...")
-    print("Download zip at", zip_path)
-    try:
-        with requests.get(url, stream=True) as r:
-            r.raise_for_status()
-            total = int(r.headers.get("content-length", 0))
-            downloaded = 0
-            with open(zip_path, "wb") as f:
-                for chunk in r.iter_content(8192):
-                    if chunk:
-                        f.write(chunk)
-                        downloaded += len(chunk)
-                        if total > 0:
-                            percent = (downloaded / total) * 100
-                            ui.set_progress(percent)
-        ui.set_message("Download complete")
-        return True
-    except Exception as e:
-        print(f"[ERROR]@download_with_progress: {e}")
-        return False
+# def download_with_progress(url, zip_path, ui: UpdateWindow):
+#     ui.set_message("Downloading update...")
+#     print("Download zip at", zip_path)
+#     try:
+#         with requests.get(url, stream=True) as r:
+#             r.raise_for_status()
+#             total = int(r.headers.get("content-length", 0))
+#             downloaded = 0
+#             with open(zip_path, "wb") as f:
+#                 for chunk in r.iter_content(8192):
+#                     if chunk:
+#                         f.write(chunk)
+#                         downloaded += len(chunk)
+#                         if total > 0:
+#                             percent = (downloaded / total) * 100
+#                             ui.set_progress(percent)
+#         ui.set_message("Download complete")
+#         return True
+#     except Exception as e:
+#         print(f"[ERROR]@download_with_progress: {e}")
+#         return False
 
 # def extract_zip(zip_path, temp_dir, ui: UpdateWindow):
 #     ui.set_message("Extracting update...")
@@ -144,20 +176,27 @@ def download_with_progress(url, zip_path, ui: UpdateWindow):
 
 
 def call_for_update(local_ver:str, remote_ver:str):
+    from time import sleep
     try:
         print("Update available")
         ui = UpdateWindow()
         ui.set_message(f"Updating {local_ver} → {remote_ver}")
         zip_url = f"{RELEASE_URL}/{ZIP_BASENAME}-{remote_ver}.zip"
 
-        while not download_with_progress(zip_url, ZIP_PATH, ui):
-            time.sleep(CHECK_INTERVAL)
+        ui.set_message("Downloading update...")
+        while not download(
+            src=zip_url,
+            dst=ZIP_PATH,
+            progress_callback=ui.set_progress
+        ):
+            sleep(CHECK_INTERVAL)
+        ui.set_message("Download complete.")
 
         while not is_main_idle():
             print("Main is in used, unsafe to update")
-            time.sleep(CHECK_INTERVAL)
+            sleep(CHECK_INTERVAL)
 
-        ldu.kill_processes([LOCKDOWN_FILE_NAME, MAIN_FILE_NAME])
+        kill_processes([LOCKDOWN_FILE_NAME, MAIN_FILE_NAME])
         # Step 1: Extract the zip file
         from zipper import extract_zip_dynamic, cleanup_extracted_files
         ui.set_message("Extracting update...")
@@ -183,13 +222,12 @@ def call_for_update(local_ver:str, remote_ver:str):
 
         ui.set_progress(100)
         ui.set_message("Restarting LockDown...")
-        time.sleep(2)
+        sleep(2)
         ui.close()
-        # ldu.run_if_not_running([f'schtasks /run /tn "{v.SCHTASK_NAME}"'], is_background=True)
-        ldu.run_elevated(f'schtasks /run /tn "{v.SCHTASK_NAME}"')
-        # ldu.run_if_not_running([LOCKDOWN_SCRIPT], is_background=True)
+        # run_if_not_running([f'schtasks /run /tn "{v.SCHTASK_NAME}"'], is_background=True)
+        run_elevated(f'schtasks /run /tn "{v.SCHTASK_NAME}"')
+        # run_if_not_running([LOCKDOWN_SCRIPT], is_background=True)
         # run_elevate(USER,'',False, LOCKDOWN_SCRIPT)
-        ldu.run
         exit(0)
     except Exception as e:
         print(f"[call_for_update ERR]: {e}")
@@ -200,6 +238,7 @@ def call_for_update(local_ver:str, remote_ver:str):
 
 # ================= Main Loop ==================
 def updater_loop():
+    from time import sleep
     while True:
         if FORCE_RUN:
             print("FORCE RUN")
@@ -209,16 +248,16 @@ def updater_loop():
 
         if not is_main_idle():
             print("Main is in used, unsafe to update")
-            time.sleep(CHECK_INTERVAL)
+            sleep(CHECK_INTERVAL)
             continue
 
         print("Main is idle, safe to update")
         try:
-            local = ldu.get_details_json()
+            local = get_details_json(DETAILS_FILE)
             remote = get_remote_version()
             if not local or not remote:
                 call_for_update("corrupted", remote_ver)
-                time.sleep(CHECK_INTERVAL)
+                sleep(CHECK_INTERVAL)
                 continue
 
             local_ver = local["version"]
@@ -226,7 +265,7 @@ def updater_loop():
 
             if local_ver != remote_ver:
                 call_for_update("corrupted", remote_ver)
-                time.sleep(CHECK_INTERVAL)
+                sleep(CHECK_INTERVAL)
                 continue
                 
             else:
@@ -235,12 +274,12 @@ def updater_loop():
         except Exception as e:
             print(f"[ERR] {e}")
             
-        time.sleep(CHECK_INTERVAL)
+        sleep(CHECK_INTERVAL)
 
 if __name__ == "__main__":
-    ldu.check_admin("Updater")
-    # ldu.kill_processes(['Main.exe'])
-    # print(f"{MAIN_FILE_NAME} running:", ldu.is_process_running('Main.exe'))
+    check_admin("Updater")
+    # kill_processes(['Main.exe'])
+    # print(f"{MAIN_FILE_NAME} running:", is_process_running('Main.exe'))
     # print(f"{FLAG_IDLE_FILE}:", ospath.exists(FLAG_IDLE_FILE))
     # print(is_main_idle())
     # input("C...")

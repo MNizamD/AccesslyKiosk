@@ -59,7 +59,7 @@ def clean_destruction(msg):
 # ---------------- LAUNCHER ----------------
 def run_updater():
     duplicate_file(UPDATER_SCRIPT, UPDATER_SCRIPT_COPY) 
-    run_elevated(f'{UPDATER_SCRIPT_COPY} {BASE_DIR} {environ.get("USERNAME")}')
+    run_elevated(f'{UPDATER_SCRIPT_COPY} --dir {BASE_DIR} --user {environ.get("USERNAME")}')
 
 def emergency_update():
     print("[!] Detected crash loop — running emergency update")

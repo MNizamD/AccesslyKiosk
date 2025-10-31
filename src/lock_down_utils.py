@@ -1,6 +1,6 @@
 from os import path as ospath, makedirs, remove as rm, getlogin, getpid
 from collections import deque
-from variables import CACHE_FILE, DETAILS_FILE, APP_DIR
+from variables import CACHE_FILE, DETAILS_FILE
 # import request
 
 CACHE_FILE = CACHE_FILE
@@ -256,19 +256,35 @@ def find_python_exe():
     
 #     return temp_python
 
-def download(src: str, dst: str):
+def download(
+        src: str,
+        dst: str,
+        progress_callback: callable = None
+    ):
     from requests import get
+
     try:
         with get(src, stream=True) as r:
             r.raise_for_status()
+            total = int(r.headers.get("content-length", 0))
+            downloaded = 0
+
             with open(dst, "wb") as f:
                 for chunk in r.iter_content(8192):
                     if chunk:
                         f.write(chunk)
+                        downloaded += len(chunk)
+
+                        # Call progress callback if provided
+                        if progress_callback:
+                            progress_callback(downloaded * 100 / total)
+
         return True
+
     except Exception as e:
         print("[ERR_DOWNLOAD]:", e)
         return False
+
 
 def is_admin_instance_running(exe_name: str):
     from psutil import process_iter, Process, AccessDenied, NoSuchProcess, ZombieProcess
@@ -296,10 +312,9 @@ def is_admin_instance_running(exe_name: str):
     return False
 
 # ================= Utility ====================
-def get_details_json():
+def get_details_json(path = DETAILS_FILE):
     from json import load
     try:
-        path = ospath.join(APP_DIR, DETAILS_FILE)
         if not ospath.exists(path):
             raise FileNotFoundError(f"Missing file: {path}")
         with open(path, "r", encoding="utf-8") as f:

@@ -11,11 +11,12 @@ DIST_FOLDER = "dist"
 DIST_FOLDERS_TO_ZIP = [
     f"{DIST_FOLDER}/src",
     # "wexpect"
-    ]  # <--- NEW: include both folders under dist/
+]  # include both folders under dist/
 INSTALLER_FOLDER = "installer"
 RELEASE_LATEST = os.path.join("releases", "latest", "download")
 RELEASE_OLD = os.path.join("releases", "old_versions")
 ZIP_BASENAME = "NizamLab"
+MAX_OLD_VERSIONS = 5  # <--- keep only 5 old versions
 # ----------------------------------------
 
 
@@ -34,6 +35,33 @@ def bump_version(version: str, part: str) -> str:
     return f"{major}.{minor}.{patch}"
 
 
+def cleanup_old_versions():
+    """Keep only the newest MAX_OLD_VERSIONS .zip files in RELEASE_OLD."""
+    if not os.path.exists(RELEASE_OLD):
+        return
+
+    zip_files = [
+        os.path.join(RELEASE_OLD, f)
+        for f in os.listdir(RELEASE_OLD)
+        if f.endswith(".zip")
+    ]
+
+    if len(zip_files) <= MAX_OLD_VERSIONS:
+        return
+
+    # Sort by modification time (oldest first)
+    zip_files.sort(key=os.path.getmtime)
+
+    # Delete oldest beyond the max limit
+    to_delete = zip_files[:-MAX_OLD_VERSIONS]
+    for path in to_delete:
+        try:
+            os.remove(path)
+            print(f"[–] Deleted old version: {os.path.basename(path)}")
+        except Exception as e:
+            print(f"[!] Failed to delete {path}: {e}")
+
+
 def make_zip(new_version: str):
     os.makedirs(RELEASE_LATEST, exist_ok=True)
     os.makedirs(RELEASE_OLD, exist_ok=True)
@@ -42,9 +70,8 @@ def make_zip(new_version: str):
     zip_path = os.path.join(RELEASE_LATEST, zip_name)
 
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
-        # Add both NizamLab and wexpect folders
+        # Add dist folders
         for folder_name in DIST_FOLDERS_TO_ZIP:
-            # folder_path = os.path.join(DIST_FOLDER, folder_name)
             folder_path = os.path.realpath(folder_name)
             if not os.path.exists(folder_path):
                 print(f"[!] Skipping missing folder: {folder_path}")
@@ -54,11 +81,10 @@ def make_zip(new_version: str):
                 print(f"[+] Zipping: {root}")
                 for file in files:
                     abs_path = os.path.join(root, file)
-                    # print("FN: ", folder_path)
-                    rel_path = os.path.relpath(abs_path, DIST_FOLDER)  # keep dist/ relative structure
+                    rel_path = os.path.relpath(abs_path, DIST_FOLDER)
                     zf.write(abs_path, arcname=rel_path)
 
-        # Add installer files (flat)
+        # Add installer files
         if os.path.exists(INSTALLER_FOLDER):
             for file in os.listdir(INSTALLER_FOLDER):
                 abs_path = os.path.join(INSTALLER_FOLDER, file)
@@ -68,14 +94,13 @@ def make_zip(new_version: str):
 
         # Add updated details.json
         print(f"[+] Zipping: {DETAILS_NAME}")
-        zf.write(DETAILS_FILE, arcname=os.path.join("src",DETAILS_NAME))
+        zf.write(DETAILS_FILE, arcname=os.path.join("src", DETAILS_NAME))
 
     print(f"[✓] New release created: {zip_path}")
     return zip_path
 
 
 def main():
-    # Load details.json
     if not os.path.exists(DETAILS_FILE):
         raise FileNotFoundError("details.json not found!")
 
@@ -96,6 +121,9 @@ def main():
         new_old_path = os.path.join(RELEASE_OLD, f"{ZIP_BASENAME}-{current_version}.zip")
         shutil.move(old_zip, new_old_path)
         print(f"[~] Moved old release to {new_old_path}")
+
+    # 🔹 Clean up older than 5 files
+    cleanup_old_versions()
 
     # Update details.json
     details["version"] = new_version
