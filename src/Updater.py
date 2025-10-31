@@ -119,71 +119,16 @@ def is_lockdown_running():
 
 
 # ================= Download + Extract ==========
-# def download_with_progress(url, zip_path, ui: UpdateWindow):
-#     ui.set_message("Downloading update...")
-#     print("Download zip at", zip_path)
-#     try:
-#         with requests.get(url, stream=True) as r:
-#             r.raise_for_status()
-#             total = int(r.headers.get("content-length", 0))
-#             downloaded = 0
-#             with open(zip_path, "wb") as f:
-#                 for chunk in r.iter_content(8192):
-#                     if chunk:
-#                         f.write(chunk)
-#                         downloaded += len(chunk)
-#                         if total > 0:
-#                             percent = (downloaded / total) * 100
-#                             ui.set_progress(percent)
-#         ui.set_message("Download complete")
-#         return True
-#     except Exception as e:
-#         print(f"[ERROR]@download_with_progress: {e}")
-#         return False
-
-# def extract_zip(zip_path, temp_dir, ui: UpdateWindow):
-#     ui.set_message("Extracting update...")
-#     if ospath.exists(temp_dir):
-#         shutil.rmtree(temp_dir)
-#     makedirs(temp_dir, exist_ok=True)
-
-#         # print(f"Progress: {pct:.2f}%")
-
-#     with zipfile.ZipFile(zip_path, "r") as zf:
-#         total = len(zf.infolist())
-#         for i, member in enumerate(zf.infolist(), 1):
-#             zf.extract(member, temp_dir)
-#             ui.set_progress(i / total * 100)
-#     rm(zip_path)
-#     ui.set_message("Extraction complete")
-
-# def replace_old_with_temp(app_dir, temp_dir, ui: UpdateWindow):
-#     ui.set_message("Applying update...")
-
-#     backup_dir = app_dir + "_old"
-#     if ospath.exists(backup_dir):
-#         print("Removing old backup...")
-#         shutil.rmtree(backup_dir)
-#     if ospath.exists(app_dir):
-#         print("Creating backup folder...")
-#         rn(app_dir, backup_dir)
-
-#     print("Replacing folder...")
-#     rn(temp_dir, app_dir)
-#     shutil.rmtree(backup_dir) #, ignore_errors=True)
-
-#     ui.set_message("Update applied")
-
 
 def call_for_update(local_ver:str, remote_ver:str):
     from time import sleep
     try:
         print("Update available")
+        print(f"Updating {local_ver} → {remote_ver}")
         ui = UpdateWindow()
-        ui.set_message(f"Updating {local_ver} → {remote_ver}")
         zip_url = f"{RELEASE_URL}/{ZIP_BASENAME}-{remote_ver}.zip"
 
-        ui.set_message("Downloading update...")
+        ui.set_message(f"Downloading {remote_ver}...")
         while not download(
             src=zip_url,
             dst=ZIP_PATH,
