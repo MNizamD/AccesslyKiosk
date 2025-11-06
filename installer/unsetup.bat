@@ -16,7 +16,7 @@ if %errorlevel% neq 0 (
 )
 
 :: CHANGE THESE if needed
-set TASKNAME=LockDownKiosk
+set TASKNAME=AccesslyKiosk
 set USERONLY=GVC
 set DESTDIR=%PROGRAMDATA%\NizamLab
 

@@ -2,7 +2,7 @@
 
 block_cipher = None
 
-a = Analysis(['LockDown.py'],
+a = Analysis(['Accessly.py'],
              pathex=[],
              binaries=[],
              datas=[],

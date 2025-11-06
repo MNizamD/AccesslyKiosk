@@ -2,10 +2,10 @@ pyinstaller --onefile --noconsole Launcher.py
 pyinstaller --onefile --noconsole Start.py
 
 
-pyinstaller --onedir --noconfirm --noconsole LockDown.py
+pyinstaller --onedir --noconfirm --noconsole Accessly.py
 pyinstaller --onedir --noconfirm --noconsole Main.py
 
-pyinstaller --onedir --name NizamLab LockDown.py Main.py
+pyinstaller --onedir --name NizamLab Accessly.py Main.py
 
 pyinstaller --onefile src\elevater.py
 

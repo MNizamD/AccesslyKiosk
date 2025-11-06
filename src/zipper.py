@@ -1,4 +1,5 @@
 from os import path as ospath, makedirs, remove, walk as oswalk
+from variables import is_dir_safe
 
 
 def extract_zip_dynamic(
@@ -7,6 +8,9 @@ def extract_zip_dynamic(
     del_zip_later: bool = False,
     progress_callback: callable = None
 ):
+    if (not is_dir_safe(zip_path)) or (not is_dir_safe(extract_to)):
+        print("[ERROR]: Unsafe to extract zip at:", extract_to)
+        return
     from zipfile import ZipFile
     from shutil import copyfileobj
     """
@@ -63,6 +67,9 @@ def cleanup_extracted_files(
     valid_paths: set,
     ignore_list: list[str] = None
 ):
+    if not is_dir_safe(extract_to):
+        print("[ERROR]: Unsafe to cleanup at:", extract_to)
+        return
     from shutil import rmtree
     """
     Deletes any file/folder in extract_to that is NOT in valid_paths,

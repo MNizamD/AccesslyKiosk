@@ -14,16 +14,16 @@ if %errorlevel% neq 0 (
 )
 
 :: CONFIG
-set TASKNAME=LockDownKiosk
+set TASKNAME=AccesslyKiosk
 set USERONLY=GVC
 @REM set APPDIR=C:\Users\%USERONLY%\AppData\Roaming\NizamLab
 set APPDIR=%PROGRAMDATA%\NizamLab
-set APPNAME=LockDown.exe
+set APPNAME=Accessly.exe
 
 :: Paths
 set CURDIR=%~dp0
 set DESTDIR=%APPDIR%
-set XMLFILE=%CURDIR%LockDownKiosk.xml
+set XMLFILE=%CURDIR%AccesslyKiosk.xml
 set APPEXEPATH=%APPDIR%\src\%APPNAME%
 
 :: Envi
@@ -39,7 +39,7 @@ echo Generating Task Scheduler XML at "%XMLFILE%"...
 >> "%XMLFILE%" echo   ^<RegistrationInfo^>
 >> "%XMLFILE%" echo     ^<Date^>%DATEISO%^</Date^>
 >> "%XMLFILE%" echo     ^<Author^>%USERNAME%^</Author^>
->> "%XMLFILE%" echo     ^<Description^>LockDown kiosk launcher task^</Description^>
+>> "%XMLFILE%" echo     ^<Description^>Accessly kiosk launcher task^</Description^>
 >> "%XMLFILE%" echo   ^</RegistrationInfo^>
 >> "%XMLFILE%" echo   ^<Triggers^>
 >> "%XMLFILE%" echo     ^<LogonTrigger^>
