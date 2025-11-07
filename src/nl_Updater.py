@@ -1,10 +1,15 @@
 from os import path as ospath
 from sys import argv, exit
+from time import sleep
 import tkinter as tk
 from tkinter import ttk
 from lib_util import get_details_json, run_elevated, is_process_running, check_admin, kill_processes, download
 from lib_env import get_env, normalize_path, ONLY_USER, PROJECT_NAME, SCHTASK_NAME, ACCESSLY_FILE_NAME, MAIN_FILE_NAME
 
+def destruct(exitcode:int):
+    sleep(10)
+    exit(exitcode)
+    
 def parse_args(args = argv[1:]):
     data = {
         'dir': None,
@@ -23,7 +28,7 @@ def parse_args(args = argv[1:]):
                 i += 1
             else:
                 print(f"[ERROR] Missing value for --{arg}")
-                exit(1)   
+                destruct(1)  
             
         elif arg == "--force":
             data["force"] = True
@@ -51,7 +56,7 @@ RELEASE_URL = "https://github.com/MNizamD/AccesslyKiosk/raw/main/releases/latest
 ZIP_PATH = ospath.join(BASE_DIR, "update.zip")
 if not env.is_dir_safe(ZIP_PATH) or (not env.is_dir_safe(BASE_DIR)):
     print("[ERROR]: Unsafe to extract zip at:", BASE_DIR)
-    exit(1)
+    destruct(1)
 # ----------------------------------------
 
 # ================= Tkinter UI =================
@@ -112,7 +117,6 @@ def is_main_idle():
 # ================= Download + Extract ==========
 
 def call_for_update(local_ver:str, remote_ver:str):
-    from time import sleep
     try:
         zip_url = f"{RELEASE_URL}/{PROJECT_NAME}-{remote_ver}.zip"
         if UPDATE_URL != None:
@@ -183,7 +187,7 @@ def updater_loop():
             print("FORCE RUN")
         if not FORCE_RUN and not is_process_running(ACCESSLY_FILE_NAME):
             print(f"{ACCESSLY_FILE_NAME} not running → shutting down updater.")
-            exit(0)
+            destruct(0)
 
         if not is_main_idle():
             print("Main is in used, unsafe to update")
@@ -219,5 +223,5 @@ def updater_loop():
 if __name__ == "__main__":
     check_admin("Updater")
     if not env.is_dir_safe(DATA["dir"]):
-        exit(0)
+        destruct(1)
     updater_loop()

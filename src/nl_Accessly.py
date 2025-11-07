@@ -49,7 +49,7 @@ def run_updater(force: bool = False):
     from os import environ
     force_arg = '' if not force else '--force'
     duplicate_file(UPDATER_SCRIPT, UPDATER_SCRIPT_COPY) 
-    run_elevated(f'{UPDATER_SCRIPT_COPY} --dir {BASE_DIR} --user "{environ.get("USERNAME")}" {force_arg}')
+    run_elevated(f'{UPDATER_SCRIPT} --dir {BASE_DIR} --user "{environ.get("USERNAME")}" {force_arg}')
 
 def emergency_update():
     showToFronBackEnd("[!] Detected crash loop — running emergency update")
