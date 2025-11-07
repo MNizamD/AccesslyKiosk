@@ -1,11 +1,11 @@
 from os import path as ospath, makedirs, remove, walk as oswalk
-
+from typing import Callable, Optional
 
 def extract_zip_dynamic(
     zip_path: str,
     extract_to: str,
     del_zip_later: bool = False,
-    progress_callback: callable = None
+    progress_callback: Optional[Callable[[float], None]] = None
 ):
     from zipfile import ZipFile
     from shutil import copyfileobj
@@ -61,15 +61,13 @@ def extract_zip_dynamic(
 def cleanup_extracted_files(
     extract_to: str,
     valid_paths: set,
-    ignore_list: list[str] = None
+    ignore_list: list[str] = []
 ):
     from shutil import rmtree
     """
     Deletes any file/folder in extract_to that is NOT in valid_paths,
     except those in ignore_list.
     """
-    if ignore_list is None:
-        ignore_list = []
 
     ignore_set = {ospath.normpath(i).lower() for i in ignore_list}
 

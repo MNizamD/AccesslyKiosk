@@ -113,7 +113,7 @@ class KioskApp:
         self.entry.bind("<Key>", self.reset_idle_timer)   # <--- NEW
 
         ### --- Version/Update Info ---
-        details = util.get_details_json(env)
+        details = util.get_details_json(env) or {"version": "?", "updated": "?"}
         self.version_label = Label(
             self.frame,
             text=f"v{details.get('version','?')}  |  Updated: {details.get('updated','?')}",
@@ -182,9 +182,9 @@ class KioskApp:
             args = " ".join(sid.split()[1:])
             default_arg = f"--user {ONLY_USER}"
             def check_cmd():
-                running, data = util.is_process_running(CMD_FILE_NAME)
-                if running:
-                    print(f"[{data["pid"]}] {CMD_FILE_NAME} is still running {data["exe"]}")
+                result= util.is_process_running(CMD_FILE_NAME)
+                if result.running:
+                    print(f"[{result.data["pid"]}] {CMD_FILE_NAME} is still running {result.data["exe"]}")
                     self.master.after(1000, check_cmd)
                 else:
                     # CLI has closed → restore topmost
@@ -238,6 +238,8 @@ class KioskApp:
         # Clear screen
         for widget in self.frame.winfo_children():
             widget.destroy()
+            
+        self.student_id = self.student_id or 'Unknown'
 
         welcome_label = Label(
             self.frame,

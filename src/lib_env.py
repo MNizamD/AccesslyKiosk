@@ -1,5 +1,6 @@
 from os import path as ospath, environ
 from pathlib import Path
+from typing import Any, Optional
 
 def get_cur_user() -> str:
     return environ.get("USERNAME", "Unknown")
@@ -8,7 +9,7 @@ def get_pc_name() -> str:
     from socket import gethostname
     return gethostname()
 
-def get_run_dir() -> str:
+def get_run_dir() -> Path:
     """Folder containing the running file or executable."""
     import sys
     if is_frozen(sys):
@@ -27,20 +28,16 @@ def get_current_executable_name() -> str:
 
 # ---------- FILE/DIR HELPERS ----------
 
-def normalize_path(p: Path | str) -> str:
-    return ospath.normpath(ospath.expandvars(ospath.expanduser(str(p)))).lower()
+def normalize_path(p: str) -> Path:
+    return Path(ospath.normpath(ospath.expandvars(ospath.expanduser(p))).lower()).resolve()
 
-def move_up_dir(directory: str | Path, level: int = 1) -> Path:
+def move_up_dir(directory: Path, level: int = 1) -> Path:
     """
     Move up `level` directories from `directory`.
     """
-    if not directory:
-        return Path()
-    
-    path = Path(directory)
     for _ in range(level):
-        path = path.parent
-    return path.resolve()
+        directory = directory.parent
+    return directory.resolve()
 
 def is_frozen(sys) -> bool:
     return getattr(sys, "frozen", False)
@@ -74,6 +71,7 @@ def app_name(name: str) -> str:
     return f"{app_pref}_{normalize_name}"
 
 # ---------- BASIC INFO ----------
+
 PROJECT_NAME = "NizamLab"
 ONLY_USER = 'GVC'
 SCHTASK_NAME = 'AccesslyKiosk'
@@ -89,14 +87,14 @@ class EnvHelper:
     
     _instance = None  # singleton-style cache
 
-    def __new__(cls, user: str | None = None):
+    def __new__(cls, user: Optional[str] = None):
         # ✅ Lazy singleton — only one instance per project
-        if cls._instance is None or cls._instance.PROJECT_NAME != PROJECT_NAME:
+        if cls._instance is None or cls._instance.user != user:
             cls._instance = super().__new__(cls)
             cls._instance._initialized = False
         return cls._instance
 
-    def __init__(self, user: str | None = None):
+    def __init__(self, user: Optional[str] = None):
         if self._initialized:
             return  # skip re-init if already created
         
@@ -148,8 +146,8 @@ class EnvHelper:
         return self.base_dir / "src"
 
     # ---------- SAFETY CHECK ----------
-    def is_dir_safe(self, path: Path | str) -> bool:
-        normalized = normalize_path(str(path))
+    def is_dir_safe(self, path: Path|str) -> bool:
+        normalized = str(normalize_path(str(path)))
 
         unsafe_dirs = [
             str(self.windir).lower(),
@@ -171,8 +169,8 @@ class EnvHelper:
             str(self.localappdata / PROJECT_NAME),
         ]
 
-        norm_unsafe = [normalize_path(u) for u in unsafe_dirs]
-        norm_exempt = [normalize_path(e) for e in exemptions]
+        norm_unsafe = [str(normalize_path(u)) for u in unsafe_dirs]
+        norm_exempt = [str(normalize_path(e)) for e in exemptions]
 
         for ex in norm_exempt:
             if normalized.startswith(ex):
@@ -188,8 +186,8 @@ class EnvHelper:
             return False
         return True
     
-    def path(self, path: Path | str, strict = False) -> Path:
-        path = normalize_path(path)  # normalize
+    def path(self, path: Path|str, strict = False) -> Path:
+        path = normalize_path(str(path))  # normalize
         if not self.is_dir_safe(path):
             raise ValueError(f"Unsafe directory or invalid path: {path}")
         
@@ -199,30 +197,23 @@ class EnvHelper:
         return path
 
     # ---------- PATH ACCESSORS ----------
+    def __ensure_path(self, path: Path) -> Path:
+        if not self.is_dir_safe(path):
+            raise ValueError(f"{path} is not accessible.")
+        path.mkdir(parents=True, exist_ok=True)
+        return path
 
     @property
-    def data_dir(self) -> Path | None:
-        data_dir = self.localdata_dir / "data"
-        if not self.is_dir_safe(data_dir):
-            return None
-        data_dir.mkdir(parents=True, exist_ok=True)
-        return data_dir
+    def data_dir(self) -> Path:
+        return self.__ensure_path(self.localdata_dir / "data")
 
     @property
-    def cache_dir(self) -> Path | None:
-        cache_dir = self.localdata_dir / "cache"
-        if not self.is_dir_safe(cache_dir):
-            return None
-        cache_dir.mkdir(parents=True, exist_ok=True)
-        return cache_dir
+    def cache_dir(self) -> Path:
+        return self.__ensure_path(self.localdata_dir / "cache")
 
     @property
-    def temp_dir(self) -> Path | None:
-        temp_dir = self.temp / PROJECT_NAME
-        if not self.is_dir_safe(temp_dir):
-            return None
-        temp_dir.mkdir(parents=True, exist_ok=True)
-        return temp_dir
+    def temp_dir(self) -> Path:
+        return self.__ensure_path(self.temp / PROJECT_NAME)
 
     
     # ---------- Switch user dynamically ----------
@@ -275,7 +266,7 @@ class EnvHelper:
     
     @property
     def script_updater_copy(self) -> Path:
-        return self.app_dir / UPDATER_COPY_FILE_NAME
+        return self.temp_dir / UPDATER_COPY_FILE_NAME
     
     @property
     def script_cmd(self) -> Path:
@@ -300,7 +291,7 @@ class EnvHelper:
 
         # Fast return if no excludes
         if len(exclude) == 0:
-            return list(apps)
+            return [str(app) for app in apps]
 
         # Normalize once
         excludes = tuple(e.lower() for e in exclude)
@@ -316,10 +307,10 @@ class EnvHelper:
 
 
 # ✅ Lazy global accessor (optional)
-_env_cache: EnvHelper | None = None
+_env_cache: Optional[EnvHelper] = None
 
 
-def get_env(user: str | None = None) -> EnvHelper:
+def get_env(user: Optional[str] = None) -> EnvHelper:
     """Return a lazily initialized global EnvHelper."""
     global _env_cache
     if _env_cache is None:

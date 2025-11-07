@@ -1,5 +1,7 @@
 from os import path as ospath, getlogin
 from collections import deque
+from pathlib import Path
+from typing import Any, Callable, Iterable, Optional
 
 def is_crash_loop(loop_history: deque, threshold=5, interval=1.0):
     """
@@ -24,18 +26,20 @@ def is_crash_loop(loop_history: deque, threshold=5, interval=1.0):
     return False
 
 
-from typing import Optional
 class ProcessCheckResult:
-    def __init__(self, running: bool, data: Optional[str] = None):
+    running: bool = False
+    data: dict[str, Any] = {}
+    def __init__(self, running: bool, data: Optional[dict[str, Any]] = None):
         self.running = running
-        self.data = data
+        if data != None:
+            self.data = data
 
     def __bool__(self):
         # When used in `if` statements, treat as the bool result
         return self.running
 
     def __iter__(self):
-        # Allows unpacking like `is_running, exe = result`
+        # Allows unpacking like `is_running, data = result`
         yield self.running
         yield self.data
 
@@ -61,14 +65,15 @@ def is_process_running(name: str) -> ProcessCheckResult:
 
 def run_background(cmd: list):
     from tempfile import gettempdir
-    from subprocess import Popen, DETACHED_PROCESS, CREATE_NEW_PROCESS_GROUP
+    import subprocess
     """Run a process in the background (non-blocking)."""
     path = cmd[0]
     if ospath.exists(path):
-        Popen(
+        creationflags = getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+        subprocess.Popen(
             cmd,
             cwd=gettempdir(),     # run outside NizamLab
-            creationflags=DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP,
+            creationflags=creationflags,
             close_fds=True
         )
     else:
@@ -87,7 +92,7 @@ def run_background(cmd: list):
 #     # else:
 #     #     print(f"[WARN] Unknown file type: {path}")
 
-def run_if_not_running(cmd: list, is_background = False):
+def run_if_not_running(cmd: list[str], is_background = False):
     """Run an exe if not already running"""
     path = cmd[0]
     exe_name = ospath.basename(path)
@@ -115,9 +120,13 @@ def run_if_not_running(cmd: list, is_background = False):
 def kill_processes(names: list[str], silent: bool = True):
     from time import sleep
     from psutil import process_iter, NoSuchProcess
+    from os import getpid
+    current_pid = getpid()
     for n in names:
-        for proc in process_iter(["name"]):
+        for proc in process_iter(attrs=["name", "pid"]):
             try:
+                if proc.info["pid"] == current_pid:
+                    continue  # skip self
                 if proc.info["name"].lower() == n.lower():
                     proc.kill()
                     if not silent:
@@ -129,7 +138,7 @@ def kill_processes(names: list[str], silent: bool = True):
                 pass
 
 
-def duplicate_file(src:str, cpy:str):
+def duplicate_file(src:Path, cpy:Path):
     try:
         if ospath.exists(cpy):
             from os import remove
@@ -159,7 +168,7 @@ def get_accessly_status(env) -> dict:
         lock_status = {key: value for key, value in rows}
 
         # Save to file (cache)
-        write_json(env.cache_file, lock_status)
+        write_json(str(env.cache_file), lock_status)
 
         cur.close()
         conn.close()
@@ -169,17 +178,17 @@ def get_accessly_status(env) -> dict:
 
         # Try reading from cache
         if ospath.exists(env.cache_file):
-            result = read_json(env.cache_file)
+            result = read_json(str(env.cache_file))
             if result != None:
                 return result
         
         # No cache file, write new one
-        write_json(env.cache_file, {"ENABLED": True})
+        write_json(str(env.cache_file), {"ENABLED": True})
 
         # Default fallback
         return {"ENABLED": True}
 
-def read_json(file: str):
+def read_json(file: str) -> Optional[dict[str, Any]]:
     from json import load
     try:
         with open(file, "r") as f:
@@ -242,7 +251,7 @@ def find_python_exe():
     from glob import glob
     for base in common_dirs:
         if ospath.isdir(base):
-            for exe_path in glob.glob(ospath.join(base, "Python*", "python.exe")):
+            for exe_path in glob(ospath.join(base, "Python*", "python.exe")):
                 print("Python common directory found")
                 return exe_path
     
@@ -251,7 +260,7 @@ def find_python_exe():
 def download(
         src: str,
         dst: str,
-        progress_callback: callable = None
+        progress_callback: Optional[Callable[[float], None]] = None
     ):
     from requests import get
 
@@ -305,7 +314,7 @@ def is_admin_instance_running(exe_name: str):
     return False
 
 # ================= Utility ====================
-def get_details_json(env):
+def get_details_json(env) -> dict[str, str] | None:
     from lib_env import parse_env
     path = parse_env(env).details_file
     from json import load
@@ -317,7 +326,7 @@ def get_details_json(env):
 
     except Exception as e:
         print("[GET_DETAILS_JSON_ERR]:", e)
-        return {"version": "?", "updated": "?"}
+        return None
 
 
 def run_elevated(cmd: str, wait: bool = False):
@@ -328,5 +337,6 @@ def run_elevated(cmd: str, wait: bool = False):
     run_elevate('Administrator','iamadmin', wait, f"{pre_app}{cmd}")
 
 if __name__ == "__main__":
-    print(get_accessly_status()) # Test
+    from lib_env import get_env
+    print(get_accessly_status(env=get_env())) # Test
     # print(is_dir_safe(input("Directory: ")))

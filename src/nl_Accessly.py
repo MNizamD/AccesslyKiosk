@@ -1,6 +1,6 @@
 from os import path as ospath, makedirs
 from time import sleep
-from lib_env import get_env, get_current_executable_name, MAIN_FILE_NAME
+from lib_env import get_env, get_current_executable_name
 env = get_env()
 
 # ---------------- CONFIG ----------------
@@ -11,12 +11,11 @@ FLAG_DESTRUCT_FILE = env.flag_destruct_file
 UPDATER_SCRIPT = env.script_updater
 UPDATER_SCRIPT_COPY = env.script_updater_copy
 MAIN_SCRIPT = env.script_main
-MAIN_FILE_NAME = MAIN_FILE_NAME
 
 # ---------------- FUNCTIONS ----------------
 def check_files():
 
-    if not ospath.exists(MAIN_SCRIPT):
+    if not MAIN_SCRIPT.exists():
         return False, f"Start file doesn't exists\nCannot find {MAIN_SCRIPT}"
 
     """Check that the log file is writable and that its drive has at least 1GB free"""
@@ -100,6 +99,8 @@ def run_kiosk():
         messagebox.showwarning("Launcher Warning", f"Cannot start kiosk:\n\n{msg}")
         return
     
+    # Kill all running app
+    kill_processes(env.all_app_processes()) # Drop the accessly's name 
     from collections import deque
     LOOP_HISTORY = deque(maxlen=5)
     while True:
@@ -112,13 +113,11 @@ def run_kiosk():
             if is_crash_loop(loop_history=LOOP_HISTORY, threshold=5, interval=5):
                 emergency_update()
                 return
-            # Kill all running app
-            kill_processes(env.all_app_processes()) # Drop the accessly's name 
             
             # Replace the copy every time to ensure fresh
             run_updater()
             # run_if_not_running(UPDATER_SCRIPT_COPY, is_background=True, arg=ospath.join(APP_DIR, '..'))
-            run_if_not_running([MAIN_SCRIPT])
+            run_if_not_running([str(MAIN_SCRIPT)])
             print("Next loop")
 
         except Exception as e:

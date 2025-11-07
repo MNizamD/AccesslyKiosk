@@ -1,4 +1,5 @@
 from sys import argv, exit
+from typing import Any, Iterable, Optional
 from lib_env import get_env, ONLY_USER
 
 ARGS = argv[1:]
@@ -10,9 +11,11 @@ def FUNC_MAP_FILES():
         'detail': env.details_file,
     }
 
-def parse_args(args: list[str], args_names: list[str]):
-    data = {k: None for k in args_names}
-    command_parts = []
+def parse_args(args: 'list[str]', args_names: 'list[str]') -> tuple[dict[str, Any], list[str]]:
+    data: dict[str, Any] = {}
+    for k in args_names:
+        data[k] = None
+    command_parts: list[str] = []
     i = 0
 
     # valid_args = ['--user']
@@ -31,7 +34,7 @@ def parse_args(args: list[str], args_names: list[str]):
         i += 1
     return data, command_parts
 
-def parse_typed_value(raw: str):
+def parse_typed_value(raw: str) -> str | Any:
     """
     Parses a string like 'int//5' or 'str//hello' and casts the value to the given type.
     """
@@ -48,7 +51,6 @@ def parse_typed_value(raw: str):
         "float": float,
         "str": str,
         "bool": lambda v: v.lower() in ("1", "true", "yes", "on"),
-        "none": lambda v: None
     }
 
     if type_name not in type_map:
@@ -65,6 +67,9 @@ def parse_typed_value(raw: str):
 def get_input(msg: str = "", pref: str = ">>"):
     return input(f'{pref}{msg} ')
 
+def invalid_option(type: str, func: str, options: Iterable) -> str:
+    return f"Unknown {type} '{func}'. Valid options: " + "".join(f"\n--> {op}" for op in options)
+
 def n_set(line: list):
     import json
     if len(line) != 3:
@@ -80,9 +85,9 @@ def n_set(line: list):
         except json.JSONDecodeError:
             value = value  # keep as string if not JSON    
     
-    if n_get([func, key], False) is None:
-        return
     data = n_get([func], False)
+    if data is None:
+        return
     
     # ✅ Type check
     expected_type = type(data[key])
@@ -96,22 +101,19 @@ def n_set(line: list):
     # ✅ Write updated value
     data[key] = value
     from lib_util import write_json
-    write_json(FUNC_MAP_FILES()[func], data)
+    write_json(str(FUNC_MAP_FILES()[func]), data)
     print(f"[SUCCESS] {func}.{key} => {value} ({type(value).__name__})")
 
 def n_get(line: list, read: bool=True):
     if len(line) < 1:
-        print(f"Argument incomplete, usage: <{'/'.join(FUNC_MAP_FILES().keys())}> <dir?/key?>")
-        return
+        raise ValueError(f"Argument incomplete, usage: <{'/'.join(FUNC_MAP_FILES().keys())}> <dir?/key?>")
     if len(line) > 2:
-        print(f"Argument overflow, usage: <{'/'.join(FUNC_MAP_FILES().keys())}> <dir?/key?>")
-        return
+        raise ValueError(f"Argument overflow, usage: <{'/'.join(FUNC_MAP_FILES().keys())}> <dir?/key?>")
     func = line[0]
     key = line[1] if len(line) > 1 else None
     data = get_json(func)
     if data is None:
-        return
-    
+        return None
     if key is None:
         if read: print(f"{str(func).upper()}: {data}")
         return data
@@ -119,22 +121,22 @@ def n_get(line: list, read: bool=True):
         print(f"{func}: {FUNC_MAP_FILES()[func]}")
         return None
     
-    if key not in data:
-        print(f"Unknown key '{key}'. Valid keys: \n>  {'\n>  '.join(data.keys())}")
+    if key not in data or data[key] is None:
+        print(invalid_option("key", key, data.keys()))
         return None
     else:
-        if read: print(f"{str(key).upper()}: {data[key]}")
+        if read:
+            print(f"{str(key).upper()}: {data[key]}")
         return data[key]
         
 
-def get_json(func: str):
+def get_json(func: str) -> Optional['dict[str, Any]']:
     # ✅ Validate function name
     if func not in FUNC_MAP_FILES():
-        print(f"Unknown function '{func}'. Valid options: \n>  {'\n>  '.join(FUNC_MAP_FILES().keys())}")
-        return None
+        raise ValueError(invalid_option('function', func, FUNC_MAP_FILES().keys()))
     # ✅ Read data
     from lib_util import read_json
-    return read_json(FUNC_MAP_FILES()[func])
+    return read_json(str(FUNC_MAP_FILES()[func]))
 
 def n_update(_):
     from os import path as ospath
@@ -148,11 +150,11 @@ def n_update(_):
     D_URL = f'--update {url}' if len(url) else ''
     # "--dir C:\Users\Marohom\Documents\NizamLab\playground --user GVC --force --update 
     # https://github.com/MNizamD/AccesslyKiosk/raw/main/releases/old_versions/NizamLab-0.4.7.zip
-    kill_processes([env.all_app_processes()])
+    kill_processes(env.all_app_processes())
     duplicate_file(env.script_updater, env.script_updater) 
     run_elevated(f'{env.script_updater_copy} --dir {BASE_DIR} {USER} {D_URL} --force')
 
-def n_task_manager(line: list[str]):
+def n_task_manager(line: 'list[str]'):
     from lib_util import is_process_running, kill_processes
     if len(line) < 2:
         print("Argument incomplete, usage: <check/kill> <app/task_names>")
@@ -166,9 +168,9 @@ def n_task_manager(line: list[str]):
 
     if mode == 'check':
         for task in tasks:
-            state, data = is_process_running(task)
-            if state:
-                print(f"[{data["pid"]}] {task}: {data["exe"]}")
+            result = is_process_running(task)
+            if result.running:
+                print(f"[{result.data["pid"]}] {task}: {result.data["exe"]}")
             else:
                 print(f"{task} is inactive")
     elif mode == 'kill':
@@ -187,8 +189,9 @@ def n_info(_):
     print(f"Directory: {get_run_dir()}")
     print(f"\n======= APP =======")
     print(f'User: {env.get_user()}')
-    print(f'Version: {data['version']}')
-    print(f'Updated: {data['updated']}')
+    print(f'Version: {data['version'] if data != None else 'Unknown'}')
+    print(f'Version: {data['version'] if data != None else 'Unknown'}')
+    print(f'Updated: {data['updated'] if data != None else 'Unknown'}')
     print(f'Directory: {env.base_dir}')
     print(f"Data: {env.data_dir}")
     print(f"Cache: {env.cache_dir}")

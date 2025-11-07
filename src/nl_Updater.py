@@ -114,13 +114,13 @@ def is_main_idle():
 def call_for_update(local_ver:str, remote_ver:str):
     from time import sleep
     try:
+        zip_url = f"{RELEASE_URL}/{PROJECT_NAME}-{remote_ver}.zip"
         if UPDATE_URL != None:
             print("Direct URL Update")
             remote_ver = list(UPDATE_URL.split("/")).pop()
+            zip_url = UPDATE_URL
         else:
-            print("Update available")
-            print(f"Updating {local_ver} → {remote_ver}")
-            zip_url = f"{RELEASE_URL}/{PROJECT_NAME}-{remote_ver}.zip"
+            print(f"Update available: {local_ver} → {remote_ver}")
             print(zip_url)
             
 
@@ -144,7 +144,7 @@ def call_for_update(local_ver:str, remote_ver:str):
         ui.set_message("Extracting update...")
         item_paths = extract_zip_dynamic(
             zip_path=ZIP_PATH,
-            extract_to=BASE_DIR,
+            extract_to=str(BASE_DIR),
             del_zip_later=True,          # True if you want to delete the .zip after extraction
             progress_callback=ui.set_progress
         )
@@ -153,7 +153,7 @@ def call_for_update(local_ver:str, remote_ver:str):
         # Step 2: Clean up old/unexpected files in that folder
         ui.set_message("Cleaning up...")
         cleanup_extracted_files(
-            extract_to=BASE_DIR,
+            extract_to=str(BASE_DIR),
             valid_paths=item_paths,
             ignore_list=[
                 "cache/",             # Whole folder to keep
@@ -197,13 +197,14 @@ def updater_loop():
         try:
             local = get_details_json(DETAILS_FILE)
             remote = get_remote_version()
+            remote_ver = remote["version"]
+
             if not local or not remote:
-                call_for_update("corrupted", remote_ver)
+                call_for_update("corrupted", 'remote_ver')
                 sleep(CHECK_INTERVAL)
                 continue
 
             local_ver = local["version"]
-            remote_ver = remote["version"]
 
             if local_ver != remote_ver:
                 call_for_update("corrupted", remote_ver)
