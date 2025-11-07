@@ -68,7 +68,7 @@ def user_exists(username: str) -> bool:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            shell=True
+            shell=False
         )
         return result.returncode == 0
     except Exception:
@@ -115,7 +115,7 @@ def parse_args():
     return user, password, will_wait, command
 
 
-def run_elevate(user: str, password: str, will_wait: bool, command: str):
+def run_elevate(user: str, password: str, will_wait: bool, command: str) -> None:
     domain = "."
 
     # Check if user exists

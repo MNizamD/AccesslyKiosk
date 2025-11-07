@@ -2,7 +2,7 @@
 from csv import reader as rd, writer as wt
 from os import path as ospath, remove as rm
 from datetime import datetime
-import lib_util as util
+from lib_util import check_admin, get_details_json, is_process_running, run_elevated
 from lib_env import get_env, get_pc_name, ONLY_USER, CMD_FILE_NAME
 env = get_env()
 
@@ -10,7 +10,7 @@ env = get_env()
 
 STUDENT_CSV = env.student_csv
 LOG_FILE = env.log_file
-FLAG_DESTRUCT_FILE = env.flag_destruct_file
+# FLAG_DESTRUCT_FILE = env.flag_destruct_file
 FLAG_IDLE_FILE = env.flag_idle_file
 CMD_FILE_NAME = CMD_FILE_NAME
 CHECK_INTERVAL = 15
@@ -113,7 +113,7 @@ class KioskApp:
         self.entry.bind("<Key>", self.reset_idle_timer)   # <--- NEW
 
         ### --- Version/Update Info ---
-        details = util.get_details_json(env) or {"version": "?", "updated": "?"}
+        details = get_details_json(env) or {"version": "?", "updated": "?"}
         self.version_label = Label(
             self.frame,
             text=f"v{details.get('version','?')}  |  Updated: {details.get('updated','?')}",
@@ -182,7 +182,7 @@ class KioskApp:
             args = " ".join(sid.split()[1:])
             default_arg = f"--user {ONLY_USER}"
             def check_cmd():
-                result= util.is_process_running(CMD_FILE_NAME)
+                result= is_process_running(CMD_FILE_NAME)
                 if result.running:
                     print(f"[{result.data["pid"]}] {CMD_FILE_NAME} is still running {result.data["exe"]}")
                     self.master.after(1000, check_cmd)
@@ -193,8 +193,8 @@ class KioskApp:
                     self.master.update()  # apply immediately
 
             # from lib_env import get_run_dir
-            # util.run_elevated(f"{get_run_dir()}\\{CMD_FILE_NAME} {default_arg if sid=="cmd" else args}")
-            util.run_elevated(f"{env.script_cmd} {default_arg if sid=="cmd" else args}")
+            # run_elevated(f"{get_run_dir()}\\{CMD_FILE_NAME} {default_arg if sid=="cmd" else args}")
+            run_elevated(f"{env.script_cmd} {default_arg if sid=="cmd" else args}")
             from time import sleep
             sleep(3)
             # Start polling for process exit
@@ -221,11 +221,7 @@ class KioskApp:
         self.show_logged_in()
 
     def destruct(self):
-        # remove idle flag
         self.remove_idle()
-        # create STOP flag
-        with open(FLAG_DESTRUCT_FILE, "w") as f:
-            f.write("STOP")
         self.master.destroy()
 
     def show_logged_in(self):
@@ -321,11 +317,17 @@ class KioskApp:
 
 
 def run():
-    from tkinter import Tk
-    util.check_admin("Main")
-    root = Tk()
-    app = KioskApp(root)
-    root.mainloop()
+    import sys
+    try:
+        from tkinter import Tk
+        check_admin("Main")
+        root = Tk()
+        app = KioskApp(root)
+        root.mainloop()
+    except Exception:
+        sys.exit(1)
+    else:
+        sys.exit(0)
 
 
 # ================= RUN =====================

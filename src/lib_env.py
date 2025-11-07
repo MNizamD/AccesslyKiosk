@@ -236,9 +236,9 @@ class EnvHelper:
     def log_file(self) -> Path:
         return self.data_dir / "StudentLogs.csv"
 
-    @property
-    def flag_destruct_file(self) -> Path:
-        return self.temp_dir / "STOP_LAUNCHER.flag"
+    # @property
+    # def flag_destruct_file(self) -> Path:
+    #     return self.temp_dir / "STOP_LAUNCHER.flag"
 
     @property
     def flag_idle_file(self) -> Path:
@@ -344,8 +344,12 @@ if __name__ == "__main__":
     print("Base dir:", env.base_dir)
     print("App dir:", env.app_dir)
     print("Flag IDLE:", env.flag_idle_file)
-    print("Flag DESTRUCT:", env.flag_destruct_file)
+    # print("Flag DESTRUCT:", env.flag_destruct_file)
     print("Cache:", env.cache_file)
     print("Details:", env.details_file)
     print("Current name:", get_current_executable_name())
     print("All Processes:", env.all_app_processes(dir=True, exclude=[ACCESSLY_FILE_NAME]))
+
+"""
+DELECTED env.flag_destruct_file
+"""

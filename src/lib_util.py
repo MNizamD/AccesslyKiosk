@@ -63,6 +63,32 @@ def is_process_running(name: str) -> ProcessCheckResult:
             continue
     return ProcessCheckResult(False, None)
 
+def raise_if_task_running(task):
+    if is_process_running(task):
+        raise Exception(f"{task} is already running...")
+
+def run_normally(cmd: list[str], wait: bool = True, hidden: bool = False) -> int:
+    app = str(cmd[0])
+    if app.lower().endswith('py'):
+        python = find_python_exe()
+        if python != None:
+            cmd.insert(0, python)
+
+    if wait:
+        from subprocess import run
+        return run(cmd, shell=False).returncode
+    else:
+        from subprocess import Popen, DEVNULL, CREATE_NO_WINDOW
+        proc = Popen(
+            cmd,
+            shell=False,
+            stdin=DEVNULL,
+            stdout=None,
+            stderr=None,
+            creationflags=CREATE_NO_WINDOW if hidden else 0
+        )
+        return proc.pid
+
 def kill_processes(names: list[str], silent: bool = True):
     from time import sleep
     from psutil import process_iter, NoSuchProcess
@@ -271,21 +297,17 @@ def get_details_json(env: EnvHelper) -> dict[str, str] | None:
     except Exception as e:
         print("[GET_DETAILS_JSON_ERR]:", e)
         return None
-    
-def __run(cmd: str, user: str, password: str, wait: bool = False):
+
+def run_elevated(cmd: str, wait: bool = False):
     from elevater import run_elevate
     from lib_env import is_frozen
     import sys
     pre_app = f'{find_python_exe()} ' if not is_frozen(sys=sys) else ''
-    run_elevate(user,password, wait, f"{pre_app}{cmd}")
-
-def run_normally(env: EnvHelper, cmd: str, wait: bool = False, password: str = ""):
-    __run(cmd=cmd, user=env.get_user(), password=password, wait=wait)
-
-def run_elevated(cmd: str, wait: bool = False):
-    __run(cmd=cmd, user='Administrator', password='iamadmin', wait=wait)
+    run_elevate('Administrator','iamadmin', wait, f"{pre_app}{cmd}")
 
 if __name__ == "__main__":
     from lib_env import get_env
-    print(get_accessly_status(env=get_env())) # Test
+    env=get_env()
+    print(get_accessly_status(env=env)) # Test
+    run_normally([str(env.script_main)])
     # print(is_dir_safe(input("Directory: ")))
