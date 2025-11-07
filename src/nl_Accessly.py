@@ -113,7 +113,6 @@ def run_kiosk():
             if is_crash_loop(loop_history=LOOP_HISTORY, threshold=5, interval=5):
                 emergency_update()
                 return
-            
             # Replace the copy every time to ensure fresh
             run_updater()
             run_normally(env=env, cmd=str(MAIN_SCRIPT), wait=True)
