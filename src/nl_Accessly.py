@@ -65,7 +65,7 @@ def emergency_update():
 
 
 def run_kiosk():
-    from lib_util import get_accessly_status, run_if_not_running, is_crash_loop, kill_processes
+    from lib_util import get_accessly_status, run_normally, is_crash_loop, kill_processes
     lock_status = get_accessly_status(env=env)
     if not bool(lock_status["ENABLED"]):
         print(lock_status)
@@ -116,8 +116,7 @@ def run_kiosk():
             
             # Replace the copy every time to ensure fresh
             run_updater()
-            # run_if_not_running(UPDATER_SCRIPT_COPY, is_background=True, arg=ospath.join(APP_DIR, '..'))
-            run_if_not_running([str(MAIN_SCRIPT)])
+            run_normally(env=env, cmd=str(MAIN_SCRIPT), wait=True)
             print("Next loop")
 
         except Exception as e:

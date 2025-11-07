@@ -1,7 +1,8 @@
 from os import path as ospath, getlogin
 from collections import deque
 from pathlib import Path
-from typing import Any, Callable, Iterable, Optional
+from lib_env import EnvHelper
+from typing import Any, Callable, Optional
 
 def is_crash_loop(loop_history: deque, threshold=5, interval=1.0):
     """
@@ -62,61 +63,6 @@ def is_process_running(name: str) -> ProcessCheckResult:
             continue
     return ProcessCheckResult(False, None)
 
-
-def run_background(cmd: list):
-    from tempfile import gettempdir
-    import subprocess
-    """Run a process in the background (non-blocking)."""
-    path = cmd[0]
-    if ospath.exists(path):
-        creationflags = getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
-        subprocess.Popen(
-            cmd,
-            cwd=gettempdir(),     # run outside NizamLab
-            creationflags=creationflags,
-            close_fds=True
-        )
-    else:
-        print(f"[WARN] {path} not found")
-
-# def get_process_args(argv):
-#     if len(argv) > 1:
-#         return argv[1:]
-#     return None
-
-# def run_foreground(cmd: list):
-#     """Run a process in the foreground (blocking)."""
-#     from subprocess import run
-#     # if any(path.lower().endswith(res) for res in [".exe", ".py", ".cmd"]):
-#     run(cmd)
-#     # else:
-#     #     print(f"[WARN] Unknown file type: {path}")
-
-def run_if_not_running(cmd: list[str], is_background = False):
-    """Run an exe if not already running"""
-    path = cmd[0]
-    exe_name = ospath.basename(path)
-    if path.lower().endswith(".py"):
-        python = find_python_exe()
-        if python is None:
-            return None
-        cmd.insert(0, python)
-
-    if not ospath.exists(path):
-        print(f"[WARN] {exe_name} not found at {path}")
-        return None
-    if not is_process_running(exe_name):
-        print(f"[INFO] Starting {exe_name}...")
-        if is_background == True:
-            run_background(cmd)
-        else:
-            from subprocess import run
-            # run_foreground(cmd)
-            run(cmd)
-    else:
-        print(f"[INFO] {exe_name} already running.")
-    return None
-
 def kill_processes(names: list[str], silent: bool = True):
     from time import sleep
     from psutil import process_iter, NoSuchProcess
@@ -148,10 +94,8 @@ def duplicate_file(src:Path, cpy:Path):
     except Exception as e:
         print(f"Duplication error: {e}")
 
-def get_accessly_status(env) -> dict:
+def get_accessly_status(env: EnvHelper) -> dict:
     from psycopg2 import connect, OperationalError
-    from lib_env import parse_env
-    env = parse_env(env)
     try:
         # Connect with your Supabase Postgres URI
         conn = connect(
@@ -314,9 +258,9 @@ def is_admin_instance_running(exe_name: str):
     return False
 
 # ================= Utility ====================
-def get_details_json(env) -> dict[str, str] | None:
-    from lib_env import parse_env
-    path = parse_env(env).details_file
+def get_details_json(env: EnvHelper) -> dict[str, str] | None:
+    
+    path = env.details_file
     from json import load
     try:
         if not ospath.exists(path):
@@ -327,14 +271,19 @@ def get_details_json(env) -> dict[str, str] | None:
     except Exception as e:
         print("[GET_DETAILS_JSON_ERR]:", e)
         return None
-
-
-def run_elevated(cmd: str, wait: bool = False):
+    
+def __run(cmd: str, user: str, password: str, wait: bool = False):
     from elevater import run_elevate
     from lib_env import is_frozen
     import sys
     pre_app = f'{find_python_exe()} ' if not is_frozen(sys=sys) else ''
-    run_elevate('Administrator','iamadmin', wait, f"{pre_app}{cmd}")
+    run_elevate(user,password, wait, f"{pre_app}{cmd}")
+
+def run_normally(env: EnvHelper, cmd: str, wait: bool = False, password: str = ""):
+    __run(cmd=cmd, user=env.get_user(), password=password, wait=wait)
+
+def run_elevated(cmd: str, wait: bool = False):
+    __run(cmd=cmd, user='Administrator', password='iamadmin', wait=wait)
 
 if __name__ == "__main__":
     from lib_env import get_env

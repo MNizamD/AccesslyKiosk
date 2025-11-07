@@ -166,10 +166,7 @@ def call_for_update(local_ver:str, remote_ver:str):
         ui.set_message("Restarting Accessly...")
         sleep(2)
         ui.close()
-        # run_if_not_running([f'schtasks /run /tn "{v.SCHTASK_NAME}"'], is_background=True)
         run_elevated(f'schtasks /run /tn "{SCHTASK_NAME}"')
-        # run_if_not_running([ACCESSLY_SCRIPT], is_background=True)
-        # run_elevate(USER,'',False, ACCESSLY_SCRIPT)
         exit(0)
     except Exception as e:
         print(f"[call_for_update ERR]: {e}")
@@ -195,7 +192,7 @@ def updater_loop():
 
         print("Main is idle, safe to update")
         try:
-            local = get_details_json(DETAILS_FILE)
+            local = get_details_json(env=env)
             remote = get_remote_version()
             remote_ver = remote["version"]
 
