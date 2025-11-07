@@ -18,7 +18,8 @@ set TASKNAME=AccesslyKiosk
 set USERONLY=GVC
 @REM set APPDIR=C:\Users\%USERONLY%\AppData\Roaming\NizamLab
 set APPDIR=%PROGRAMDATA%\NizamLab
-set APPNAME=Accessly.exe
+set PREFIX=nl_
+set APPNAME=%PREFIX%Accessly.exe
 
 :: Paths
 set CURDIR=%~dp0

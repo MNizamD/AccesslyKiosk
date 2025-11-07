@@ -1,4 +1,4 @@
-from os import path as ospath, getlogin, getpid
+from os import path as ospath, getlogin
 from collections import deque
 
 def is_crash_loop(loop_history: deque, threshold=5, interval=1.0):
@@ -41,11 +41,17 @@ class ProcessCheckResult:
 
 
 def is_process_running(name: str) -> ProcessCheckResult:
+    """Check if a process with given name is already running (excluding self)."""
+    from os import getpid
+    current_pid = getpid()
+
     from psutil import process_iter, NoSuchProcess, AccessDenied
     """Check if a process with given name is already running"""
     # attrs=["pid", "name", "exe", "cmdline", "username"]
     for proc in process_iter(attrs=["pid", "name", "exe"]):
         try:
+            if proc.info["pid"] == current_pid:
+                continue  # skip self
             if proc.info["name"].lower() == name.lower():
                 return ProcessCheckResult(True, proc.info)
         except (NoSuchProcess, AccessDenied):
@@ -274,6 +280,7 @@ def download(
 
 def is_admin_instance_running(exe_name: str):
     from psutil import process_iter, Process, AccessDenied, NoSuchProcess, ZombieProcess
+    from os import getpid
     """Check if another process with the same exe name is running as admin."""
     current_pid = getpid()
 

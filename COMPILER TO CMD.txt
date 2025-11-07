@@ -9,4 +9,4 @@ pyinstaller --onedir --name NizamLab Accessly.py Main.py
 
 pyinstaller --onefile src\elevater.py
 
-pyinstaller --noconfirm combined.spec
+pyinstaller --noconfirm --upx-dir "upx-5.0.2-win64" combined.spec

@@ -41,7 +41,7 @@ env = get_env(user=USER)
 BASE_DIR = normalize_path(DATA["dir"]) if DATA["dir"] != None else env.base_dir
 APP_DIR = ospath.join(BASE_DIR, 'src')
 UPDATE_URL = DATA["update"]
-FLAG_IDLE_FILE = ospath.join(env.temp_dir, "IDLE.flag")
+FLAG_IDLE_FILE = env.flag_idle_file
 DETAILS_FILE = ospath.join(APP_DIR, "details.json")
 ACCESSLY_SCRIPT = ospath.join(APP_DIR, ACCESSLY_FILE_NAME)
 
@@ -49,6 +49,9 @@ CHECK_INTERVAL = 15  # seconds
 REPO_RAW = "https://raw.githubusercontent.com/MNizamD/AccesslyKiosk/main"
 RELEASE_URL = "https://github.com/MNizamD/AccesslyKiosk/raw/main/releases/latest/download"
 ZIP_PATH = ospath.join(BASE_DIR, "update.zip")
+if not env.is_dir_safe(ZIP_PATH) or (not env.is_dir_safe(BASE_DIR)):
+    print("[ERROR]: Unsafe to extract zip at:", BASE_DIR)
+    exit(1)
 # ----------------------------------------
 
 # ================= Tkinter UI =================

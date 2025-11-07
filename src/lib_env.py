@@ -7,6 +7,24 @@ def get_cur_user() -> str:
 def get_pc_name() -> str:
     from socket import gethostname
     return gethostname()
+
+def get_run_dir() -> str:
+    """Folder containing the running file or executable."""
+    import sys
+    if is_frozen(sys):
+        return Path(sys.executable).parent
+    return Path(__file__).resolve().parent
+
+def get_current_executable_name() -> str:
+    """Return the name of the currently running file or executable."""
+    import sys
+    if is_frozen(sys):
+        # When bundled by PyInstaller or similar
+        return ospath.basename(sys.executable)
+    else:
+        # Normal Python script
+        return ospath.basename(sys.argv[0])
+
 # ---------- FILE/DIR HELPERS ----------
 
 def normalize_path(p: Path | str) -> str:
@@ -27,13 +45,6 @@ def move_up_dir(directory: str | Path, level: int = 1) -> Path:
 def is_frozen(sys) -> bool:
     return getattr(sys, "frozen", False)
 
-
-def get_run_dir() -> str:
-    """Folder containing the running file or executable."""
-    import sys
-    if is_frozen(sys):
-        return Path(sys.executable).parent
-    return Path(__file__).resolve().parent
 
 def is_user_exists(username: str) -> bool:
     """Check if a local Windows user exists."""
@@ -63,7 +74,6 @@ def app_name(name: str) -> str:
     return f"{app_pref}_{normalize_name}"
 
 # ---------- BASIC INFO ----------
-
 PROJECT_NAME = "NizamLab"
 ONLY_USER = 'GVC'
 SCHTASK_NAME = 'AccesslyKiosk'
@@ -128,6 +138,8 @@ class EnvHelper:
     @property
     def base_dir(self) -> Path:
         """The parent of the run directory (usually project root)."""
+        if get_current_executable_name() in self.all_app_processes(exclude=[UPDATER_COPY_FILE_NAME]):
+            return move_up_dir(get_run_dir())
         return self.programdata / PROJECT_NAME
 
     @property
@@ -287,7 +299,7 @@ class EnvHelper:
             )
 
         # Fast return if no excludes
-        if not exclude:
+        if len(exclude) == 0:
             return list(apps)
 
         # Normalize once
@@ -295,7 +307,7 @@ class EnvHelper:
 
         result = []
         for app in apps:
-            app_lower = app.lower()
+            app_lower = str(app).lower()
             if not any(ex in app_lower for ex in excludes):
                 result.append(app)
 
@@ -344,4 +356,5 @@ if __name__ == "__main__":
     print("Flag DESTRUCT:", env.flag_destruct_file)
     print("Cache:", env.cache_file)
     print("Details:", env.details_file)
-    print("All Processes:", env.all_app_processes(dir=True))
+    print("Current name:", get_current_executable_name())
+    print("All Processes:", env.all_app_processes(dir=True, exclude=[ACCESSLY_FILE_NAME]))

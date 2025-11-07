@@ -1,6 +1,6 @@
 from os import path as ospath, makedirs
 from time import sleep
-from lib_env import get_env, MAIN_FILE_NAME
+from lib_env import get_env, get_current_executable_name, MAIN_FILE_NAME
 env = get_env()
 
 # ---------------- CONFIG ----------------
@@ -12,7 +12,6 @@ UPDATER_SCRIPT = env.script_updater
 UPDATER_SCRIPT_COPY = env.script_updater_copy
 MAIN_SCRIPT = env.script_main
 MAIN_FILE_NAME = MAIN_FILE_NAME
-ACCESSLY_FILE_NAME = env.script_accessly
 
 # ---------------- FUNCTIONS ----------------
 def check_files():
@@ -68,7 +67,7 @@ def emergency_update():
 
 def run_kiosk():
     from lib_util import get_accessly_status, run_if_not_running, is_crash_loop, kill_processes
-    lock_status = get_accessly_status()
+    lock_status = get_accessly_status(env=env)
     if not bool(lock_status["ENABLED"]):
         print(lock_status)
         print("Disabled on server")
@@ -114,7 +113,7 @@ def run_kiosk():
                 emergency_update()
                 return
             # Kill all running app
-            kill_processes(env.all_app_processes(exclude=[ACCESSLY_FILE_NAME])) # Drop the accessly's name 
+            kill_processes(env.all_app_processes()) # Drop the accessly's name 
             
             # Replace the copy every time to ensure fresh
             run_updater()
@@ -134,8 +133,9 @@ def run_kiosk():
 # ---------------- RUN ----------------
 if __name__ == "__main__":
     from lib_util import is_process_running
-    if is_process_running(ACCESSLY_FILE_NAME):
-        print(ACCESSLY_FILE_NAME,'is currently running, exiting...')
+    current_name = get_current_executable_name()
+    if is_process_running(current_name):
+        print(current_name,'is currently running, exiting...')
         from sys import exit
         exit(0)
     run_kiosk()
