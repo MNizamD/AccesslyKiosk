@@ -89,7 +89,7 @@ class EnvHelper:
 
     def __new__(cls, user: Optional[str] = None):
         # ✅ Lazy singleton — only one instance per project
-        if cls._instance is None or cls._instance.user != user:
+        if cls._instance is None or cls._instance._user != user:
             cls._instance = super().__new__(cls)
             cls._instance._initialized = False
         return cls._instance
@@ -103,13 +103,13 @@ class EnvHelper:
         if not is_user_exists(user):
             raise ValueError(f"User '{user}' does not exist on this computer.")
         
-        self.user = user
+        self._user = user
         self._initialized = True
 
     # ---------- Lazy Properties ----------
     @property
     def user_profile(self) -> Path:
-        return Path(f"C:/Users/{self.user}")
+        return Path(f"C:/Users/{self._user}")
 
     @property
     def localappdata(self) -> Path:
@@ -153,7 +153,7 @@ class EnvHelper:
             str(self.windir).lower(),
             "%localappdata%",
             "%programdata%",
-            f"C:\\Users\\{self.user}",
+            f"C:\\Users\\{self._user}",
             r"c:\windows",
             r"c:\program files",
             r"c:\program files (x86)",
@@ -217,15 +217,16 @@ class EnvHelper:
 
     
     # ---------- Switch user dynamically ----------
-    def get_user(self):
-        return self.user
+    @property
+    def user(self):
+        return self._user
 
     def set_user(self, new_user: str):
         """Switch the active user and reset cached folders."""
         if not is_user_exists(new_user):
             raise ValueError(f"User '{new_user}' does not exist on this computer.")
-        self.user = new_user
-        print(f"[Env] Active user changed to: {self.user}")
+        self._user = new_user
+        print(f"[Env] Active user changed to: {self._user}")
 
     # ---------- FILE PATHS ----------
     @property
@@ -284,9 +285,9 @@ class EnvHelper:
         else:
             apps = (
                 ACCESSLY_FILE_NAME,
+                MAIN_FILE_NAME,
                 UPDATER_FILE_NAME,
                 UPDATER_COPY_FILE_NAME,
-                MAIN_FILE_NAME,
             )
 
         # Fast return if no excludes
@@ -315,7 +316,7 @@ def get_env(user: Optional[str] = None) -> EnvHelper:
     global _env_cache
     if _env_cache is None:
         _env_cache = EnvHelper(user)
-    elif user and user != _env_cache.user:
+    elif user and user != _env_cache._user:
         _env_cache.set_user(user)
     return _env_cache
 
@@ -348,7 +349,7 @@ if __name__ == "__main__":
     print("Cache:", env.cache_file)
     print("Details:", env.details_file)
     print("Current name:", get_current_executable_name())
-    print("All Processes:", env.all_app_processes(dir=True, exclude=[ACCESSLY_FILE_NAME]))
+    print("All Processes:", env.all_app_processes())
 
 """
 DELECTED env.flag_destruct_file

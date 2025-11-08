@@ -2,10 +2,10 @@
 from csv import reader as rd, writer as wt
 from os import path as ospath, remove as rm
 from datetime import datetime
-from lib_util import check_admin, get_details_json, is_process_running, run_elevated
+from lib_util import check_admin, get_details_json, is_process_running, run_elevated, showToFronBackEnd
 from lib_env import get_env, get_pc_name, ONLY_USER, CMD_FILE_NAME
+from time import sleep
 env = get_env()
-
 # ================= CONFIG ==================
 
 STUDENT_CSV = env.student_csv
@@ -169,6 +169,7 @@ class KioskApp:
         from tkinter import END
         sid = self.entry.get().strip()
         if sid == "destruct":
+            self.master._should_restart = False
             self.destruct()
             return
         
@@ -195,7 +196,6 @@ class KioskApp:
             # from lib_env import get_run_dir
             # run_elevated(f"{get_run_dir()}\\{CMD_FILE_NAME} {default_arg if sid=="cmd" else args}")
             run_elevated(f"{env.script_cmd} {default_arg if sid=="cmd" else args}")
-            from time import sleep
             sleep(3)
             # Start polling for process exit
             check_cmd()
@@ -312,25 +312,35 @@ class KioskApp:
         # Disable the button to prevent double clicks
         self.logout_button.config(state="disabled")
 
-        # After 3 seconds, destroy and rerun
-        self.master.after(3000, lambda: (self.master.destroy(), run()))
+        # After 3 seconds, destroy
+        self.master.after(3000, lambda: (self.destruct()))
 
 
 def run():
-    import sys
-    try:
-        from tkinter import Tk
-        check_admin("Main")
-        root = Tk()
-        app = KioskApp(root)
-        root.mainloop()
-    except Exception:
-        sys.exit(1)
-    else:
-        sys.exit(0)
+    from tkinter import Tk
+    check_admin("Main")
+    root = Tk()
+    root.title("Accessly UI")
+    app = KioskApp(root)
+    setattr(root, '_should_restart', True)  # mark flag
+    root.mainloop()
+    
+    # Return True if flagged for restart
+    return getattr(root, "_should_restart", False)
 
 
 # ================= RUN =====================
 if __name__ == "__main__":
-    run()
+    from sys import exit
+    try:
+        while True:
+            should_restart = run()
+            if not should_restart:
+                break  # exit cleanly
+            print("Restarting...")
+    except Exception as e:
+        showToFronBackEnd("Main Error", "Main UI error.", str(e))
+        exit(369)
+    else:
+        exit(0)
 

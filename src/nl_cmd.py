@@ -188,7 +188,7 @@ def n_info(_):
     print(f"User: {get_cur_user()}")
     print(f"Directory: {get_run_dir()}")
     print(f"\n======= APP =======")
-    print(f'User: {env.get_user()}')
+    print(f'User: {env.user}')
     print(f'Version: {data['version'] if data != None else 'Unknown'}')
     print(f'Version: {data['version'] if data != None else 'Unknown'}')
     print(f'Updated: {data['updated'] if data != None else 'Unknown'}')

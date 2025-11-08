@@ -4,7 +4,7 @@ from pathlib import Path
 from lib_env import EnvHelper
 from typing import Any, Callable, Optional
 
-def is_crash_loop(loop_history: deque, threshold=5, interval=1.0):
+def is_crash_loop(loop_history: deque, threshold=5, window=1.0):
     """
     Detects if the loop is repeating too fast (e.g., crashes).
     - threshold: how many loops inside 'window' seconds trigger crash detection
@@ -22,7 +22,7 @@ def is_crash_loop(loop_history: deque, threshold=5, interval=1.0):
     if len(loop_history) == loop_history.maxlen:
         # oldest vs newest in history
         duration = loop_history[-1] - loop_history[0]
-        if duration < interval:
+        if duration < window:
             return True
     return False
 
@@ -110,7 +110,7 @@ def kill_processes(names: list[str], silent: bool = True):
                 pass
 
 
-def duplicate_file(src:Path, cpy:Path):
+def duplicate_file(src:Path, cpy:Path) -> bool:
     try:
         if ospath.exists(cpy):
             from os import remove
@@ -119,10 +119,56 @@ def duplicate_file(src:Path, cpy:Path):
         copy2(src, cpy)
     except Exception as e:
         print(f"Duplication error: {e}")
+        return False
+    else:
+        return True
+
+def internet_ok(timeout: float = 2.0, test_http: Optional[str] = None) -> bool:
+    """
+    Checks if internet is usable.
+    
+    - timeout: seconds to wait for TCP connection
+    - test_http: optional URL to test HTTP connectivity (like SQL API endpoint)
+    """
+    # 1️⃣ Check raw TCP to DNS (8.8.8.8:53)
+    dns = "8.8.8.8"
+    try:
+        from socket import create_connection
+        create_connection((dns, 53), timeout=timeout)
+    except OSError:
+        print(f"Unable to establish connection to {dns}")
+        return False
+    
+    # 2️⃣ Optional: HTTP test (API, SQL endpoint, etc.)
+    if test_http:
+        from requests import head, RequestException
+        try:
+            r = head(test_http, timeout=timeout)
+            return r.status_code < 500
+        except RequestException:
+            print("HTTP connection failed.")
+            return False
+    # If we reach here, TCP works, assume usable
+    return True
+
 
 def get_accessly_status(env: EnvHelper) -> dict:
     from psycopg2 import connect, OperationalError
+    def get_cache():
+        if ospath.exists(env.cache_file):
+            result = read_json(str(env.cache_file))
+            if result != None:
+                return result
+        
+        # No cache file, write new one
+        write_json(str(env.cache_file), {"ENABLED": True})
+
+        # Default fallback
+        return {"ENABLED": True}
+
     try:
+        if not internet_ok():
+            return get_cache()
         # Connect with your Supabase Postgres URI
         conn = connect(
             "postgresql://postgres.wfnhabdtwcjebmyeglnt:qOe8OeQoGqOhQJia@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres",
@@ -145,18 +191,8 @@ def get_accessly_status(env: EnvHelper) -> dict:
         return lock_status
     except OperationalError as e:
         print(f"Fetching failed: {e}")
-
         # Try reading from cache
-        if ospath.exists(env.cache_file):
-            result = read_json(str(env.cache_file))
-            if result != None:
-                return result
-        
-        # No cache file, write new one
-        write_json(str(env.cache_file), {"ENABLED": True})
-
-        # Default fallback
-        return {"ENABLED": True}
+        return get_cache()
 
 def read_json(file: str) -> Optional[dict[str, Any]]:
     from json import load
@@ -284,7 +320,7 @@ def is_admin_instance_running(exe_name: str):
     return False
 
 # ================= Utility ====================
-def get_details_json(env: EnvHelper) -> dict[str, str] | None:
+def get_details_json(env: EnvHelper) -> dict[str, Optional[str]]:
     
     path = env.details_file
     from json import load
@@ -296,7 +332,7 @@ def get_details_json(env: EnvHelper) -> dict[str, str] | None:
 
     except Exception as e:
         print("[GET_DETAILS_JSON_ERR]:", e)
-        return None
+        return { "version": None, "updated": None}
 
 def run_elevated(cmd: str, wait: bool = False):
     from elevater import run_elevate
@@ -305,9 +341,13 @@ def run_elevated(cmd: str, wait: bool = False):
     pre_app = f'{find_python_exe()} ' if not is_frozen(sys=sys) else ''
     run_elevate('Administrator','iamadmin', wait, f"{pre_app}{cmd}")
 
+def showToFronBackEnd(title: str, msg: str, details: str = ''):
+    from tkinter import messagebox
+    print(f"[{title}]{msg}\n{details}")
+    messagebox.showerror(title=title, message=msg, detail=details)
+
 if __name__ == "__main__":
     from lib_env import get_env
     env=get_env()
     print(get_accessly_status(env=env)) # Test
-    run_normally([str(env.script_main)])
     # print(is_dir_safe(input("Directory: ")))

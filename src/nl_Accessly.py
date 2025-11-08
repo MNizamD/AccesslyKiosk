@@ -1,13 +1,12 @@
 from time import sleep
 from lib_env import get_env, get_current_executable_name
 from sys import exit, argv
-from tkinter import messagebox
+from lib_util import showToFronBackEnd
+
 env = get_env()
 
 # ---------------- CONFIG ----------------
-BASE_DIR = env.base_dir# app install dir (read-only)
 LOG_FILE = env.log_file
-# FLAG_DESTRUCT_FILE = env.flag_destruct_file
 
 UPDATER_SCRIPT = env.script_updater
 UPDATER_SCRIPT_COPY = env.script_updater_copy
@@ -46,13 +45,14 @@ def check_files() -> bool:
 # ---------------- LAUNCHER ----------------
 def run_updater(force: bool = False):
     from lib_util import duplicate_file, run_elevated
-    from os import environ
     force_arg = '' if not force else '--force'
-    duplicate_file(UPDATER_SCRIPT, UPDATER_SCRIPT_COPY) 
-    run_elevated(f'{UPDATER_SCRIPT} --dir {BASE_DIR} --user "{environ.get("USERNAME")}" {force_arg}')
+    if duplicate_file(UPDATER_SCRIPT, UPDATER_SCRIPT_COPY):
+        run_elevated(f'{UPDATER_SCRIPT_COPY} --dir {env.base_dir} --user "{env.user}" {force_arg}')
+    else:
+        showToFronBackEnd(title="Updater", msg="Failed to duplicate updater.")
 
 def emergency_update():
-    showToFronBackEnd("[!] Detected crash loop — running emergency update")
+    showToFronBackEnd("Crash","Detected crash loop!\nRunning emergency update...")
     run_updater(force=True)
     sleep(20)
     exit(1)
@@ -61,31 +61,28 @@ def emergency_update():
 def run_kiosk():
     check_server()
     check_files()
-    # check_destruction()
     run_updater()
     from lib_util import run_normally, is_crash_loop, kill_processes
     from os import path as ospath
     
-    # Kill all running app
-    kill_processes(env.all_app_processes()) # Drop the accessly's name
     from collections import deque
     LOOP_HISTORY = deque(maxlen=5)
     while True:
-        if run_normally([str(MAIN_SCRIPT)], wait=True) == 0:
+        exitcode = run_normally([str(MAIN_SCRIPT)], wait=True)
+        if exitcode == 0:
             print("Main ended successfully.")
             break # App closed successfully
+
+        if exitcode == 369:
+            print("Main encountered errors.") # App encountered error
         
         # App did not properly
-        if is_crash_loop(loop_history=LOOP_HISTORY, threshold=5, interval=5):
+        if is_crash_loop(loop_history=LOOP_HISTORY, threshold=5, window=15):
             kill_processes(env.all_app_processes(), False)
             emergency_update()
         
         # Short delay before restarting
         sleep(0.25)
-
-def showToFronBackEnd(msg: str, details: str = ''):
-    print(f"{msg}\n{details}")
-    messagebox.showerror(title="[AccesslyERR]", message=msg, detail=details)
 
 # ---------------- RUN ----------------
 if __name__ == "__main__":
@@ -93,11 +90,13 @@ if __name__ == "__main__":
         if '--emergency' in argv:
             emergency_update()
             
-        from lib_util import raise_if_task_running
+        from lib_util import raise_if_task_running, kill_processes
         raise_if_task_running(get_current_executable_name())
+        # Kill all running app
+        kill_processes(env.all_app_processes()) # Drop the accessly's name
         run_kiosk()
     except Exception as e:
-        showToFronBackEnd(f"Please contact the administrator.", str(e))
+        showToFronBackEnd(title="Accessly Error", msg=f"Please contact the administrator.", details=str(e))
         exit(1)
     else:
         exit(0)
