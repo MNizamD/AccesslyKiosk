@@ -5,13 +5,6 @@ from lib_util import showToFronBackEnd
 
 env = get_env()
 
-# ---------------- CONFIG ----------------
-LOG_FILE = env.log_file
-
-UPDATER_SCRIPT = env.script_updater
-UPDATER_SCRIPT_COPY = env.script_updater_copy
-MAIN_SCRIPT = env.script_main
-
 # ---------------- FUNCTIONS ----------------
 def check_server() -> bool:
     from lib_util import get_accessly_status
@@ -21,7 +14,8 @@ def check_server() -> bool:
     return True
 
 def check_files() -> bool:
-
+    MAIN_SCRIPT = env.script_main
+    LOG_FILE = env.log_file
     if not MAIN_SCRIPT.exists():
         raise Exception(f"Cannot find {MAIN_SCRIPT}.") 
 
@@ -36,7 +30,8 @@ def check_files() -> bool:
 
     # Check free space
     from shutil import disk_usage
-    total, used, free = disk_usage(env.data_dir)
+    # total, used, free = disk_usage(env.data_dir)
+    _, _, free = disk_usage(env.data_dir)
     if free < 1 * 1024 * 1024 * 1024:  # 1 GB
         raise Exception(f"Not enough free space ({free / (1024**3):.2f} GB available)")
 
@@ -45,6 +40,8 @@ def check_files() -> bool:
 # ---------------- LAUNCHER ----------------
 def run_updater(force: bool = False):
     from lib_util import duplicate_file, run_elevated
+    UPDATER_SCRIPT = env.script_updater
+    UPDATER_SCRIPT_COPY = env.script_updater_copy
     force_arg = '' if not force else '--force'
     if duplicate_file(UPDATER_SCRIPT, UPDATER_SCRIPT_COPY):
         run_elevated(f'{UPDATER_SCRIPT_COPY} --dir {env.base_dir} --user "{env.user}" {force_arg}')
@@ -63,12 +60,11 @@ def run_kiosk():
     check_files()
     run_updater()
     from lib_util import run_normally, is_crash_loop, kill_processes
-    from os import path as ospath
     
     from collections import deque
     LOOP_HISTORY = deque(maxlen=5)
     while True:
-        exitcode = run_normally([str(MAIN_SCRIPT)], wait=True)
+        exitcode = run_normally([str(env.script_main)], wait=True)
         if exitcode == 0:
             print("Main ended successfully.")
             break # App closed successfully

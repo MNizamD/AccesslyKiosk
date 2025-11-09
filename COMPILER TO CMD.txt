@@ -3,10 +3,11 @@ pyinstaller --onefile --noconsole Start.py
 
 
 pyinstaller --onedir --noconfirm --noconsole Accessly.py
-pyinstaller --onedir --noconfirm --noconsole Main.py
+pyinstaller --onedir --noconfirm --noconsole main.py
 
-pyinstaller --onedir --name NizamLab Accessly.py Main.py
+pyinstaller --onedir --name NizamLab Accessly.py main.py
 
 pyinstaller --onefile src\elevater.py
 
 pyinstaller --noconfirm --upx-dir "upx-5.0.2-win64" combined.spec
+pyinstaller --noconfirm combined.spec

@@ -1,6 +1,10 @@
 from os import path as ospath, environ
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
+
+PROJECT_NAME = "NizamLab"
+ONLY_USER = 'GVC'
+SCHTASK_NAME = 'AccesslyKiosk'
 
 def get_cur_user() -> str:
     return environ.get("USERNAME", "Unknown")
@@ -70,18 +74,41 @@ def app_name(name: str) -> str:
     normalize_name = f"{name}.exe" if is_frozen(sys) else f"{name}.py"
     return f"{app_pref}_{normalize_name}"
 
-# ---------- BASIC INFO ----------
-
-PROJECT_NAME = "NizamLab"
-ONLY_USER = 'GVC'
-SCHTASK_NAME = 'AccesslyKiosk'
-
 # file names based on app_name
-ACCESSLY_FILE_NAME = app_name("Accessly")
-UPDATER_FILE_NAME = app_name("Updater")
-UPDATER_COPY_FILE_NAME = app_name("Updater_Copy")
-MAIN_FILE_NAME = app_name("Main")
-CMD_FILE_NAME = app_name("cmd")
+_ACCESSLY_FILE_NAME = None
+def ACCESSLY_FILE_NAME():
+    global _ACCESSLY_FILE_NAME
+    if _ACCESSLY_FILE_NAME is None:
+        _ACCESSLY_FILE_NAME = app_name("Accessly")
+    return _ACCESSLY_FILE_NAME
+
+_UPDATER_FILE_NAME = None
+def UPDATER_FILE_NAME():
+    global _UPDATER_FILE_NAME
+    if _UPDATER_FILE_NAME is None:
+        _UPDATER_FILE_NAME = app_name("updater")
+    return _UPDATER_FILE_NAME
+
+_UPDATER_COPY_FILE_NAME = None
+def UPDATER_COPY_FILE_NAME():
+    global _UPDATER_COPY_FILE_NAME
+    if _UPDATER_COPY_FILE_NAME is None:
+        _UPDATER_COPY_FILE_NAME = app_name("updater_copy")
+    return _UPDATER_COPY_FILE_NAME
+
+_MAIN_FILE_NAME = None
+def MAIN_FILE_NAME():
+    global _MAIN_FILE_NAME
+    if _MAIN_FILE_NAME is None:
+        _MAIN_FILE_NAME = app_name("main")
+    return _MAIN_FILE_NAME
+
+_CMD_FILE_NAME = None
+def CMD_FILE_NAME():
+    global _CMD_FILE_NAME
+    if _CMD_FILE_NAME is None:
+        _CMD_FILE_NAME = app_name("cmd")
+    return _CMD_FILE_NAME
 
 class EnvHelper:
     
@@ -105,6 +132,11 @@ class EnvHelper:
         
         self._user = user
         self._initialized = True
+        self.__ACCESSLY_FILE_NAME = ACCESSLY_FILE_NAME()
+        self.__UPDATER_FILE_NAME = UPDATER_FILE_NAME()
+        self.__UPDATER_COPY_FILE_NAME = UPDATER_COPY_FILE_NAME()
+        self.__MAIN_FILE_NAME = MAIN_FILE_NAME()
+        self.__CMD_FILE_NAME = CMD_FILE_NAME()
 
     # ---------- Lazy Properties ----------
     @property
@@ -136,7 +168,7 @@ class EnvHelper:
     @property
     def base_dir(self) -> Path:
         """The parent of the run directory (usually project root)."""
-        if get_current_executable_name() in self.all_app_processes(exclude=[UPDATER_COPY_FILE_NAME]):
+        if get_current_executable_name() in self.all_app_processes(exclude=[self.__UPDATER_COPY_FILE_NAME]):
             return move_up_dir(get_run_dir())
         return self.programdata / PROJECT_NAME
 
@@ -255,23 +287,23 @@ class EnvHelper:
 
     @property
     def script_accessly(self) -> Path:
-        return self.app_dir / ACCESSLY_FILE_NAME
+        return self.app_dir / self.__ACCESSLY_FILE_NAME
         
     @property
     def script_main(self) -> Path:
-        return self.app_dir / MAIN_FILE_NAME
+        return self.app_dir / self.__MAIN_FILE_NAME
     
     @property
     def script_updater(self) -> Path:
-        return self.app_dir / UPDATER_FILE_NAME
+        return self.app_dir / self.__UPDATER_FILE_NAME
     
     @property
     def script_updater_copy(self) -> Path:
-        return self.temp_dir / UPDATER_COPY_FILE_NAME
+        return self.temp_dir / self.__UPDATER_COPY_FILE_NAME
     
     @property
     def script_cmd(self) -> Path:
-        return self.app_dir / CMD_FILE_NAME
+        return self.app_dir / self.__CMD_FILE_NAME
     
     def all_app_processes(self, exclude: list[str] = [], dir: bool = False) -> list[str]:
         # Preselect list once (avoid recomputing conditionally twice)
@@ -284,10 +316,10 @@ class EnvHelper:
             )
         else:
             apps = (
-                ACCESSLY_FILE_NAME,
-                MAIN_FILE_NAME,
-                UPDATER_FILE_NAME,
-                UPDATER_COPY_FILE_NAME,
+                self.__ACCESSLY_FILE_NAME,
+                self.__MAIN_FILE_NAME,
+                self.__UPDATER_FILE_NAME,
+                self.__UPDATER_COPY_FILE_NAME,
             )
 
         # Fast return if no excludes

@@ -3,30 +3,30 @@ from csv import reader as rd, writer as wt
 from os import path as ospath, remove as rm
 from datetime import datetime
 from lib_util import check_admin, get_details_json, is_process_running, run_elevated, showToFronBackEnd
-from lib_env import get_env, get_pc_name, ONLY_USER, CMD_FILE_NAME
+from lib_env import get_pc_name, ONLY_USER, get_env
 from time import sleep
-env = get_env()
 # ================= CONFIG ==================
 
-STUDENT_CSV = env.student_csv
-LOG_FILE = env.log_file
-# FLAG_DESTRUCT_FILE = env.flag_destruct_file
-FLAG_IDLE_FILE = env.flag_idle_file
-CMD_FILE_NAME = CMD_FILE_NAME
+env = get_env()
 CHECK_INTERVAL = 15
 
-PC_NAME = get_pc_name()
-
-# Ensure log file exists
-if not ospath.exists(LOG_FILE):
-    with open(LOG_FILE, mode="w", newline="") as file:
-        writer = wt(file)
-        writer.writerow(["StudentID", "PC_Name", "Login_Time", "Logout_Time"])
+def check_files():
+    # Ensure log file exists
+    LOG_FILE = env.log_file
+    if ospath.exists(LOG_FILE):
+        return
+    try: # Since log does not exists.
+        with open(LOG_FILE, mode="w", newline="") as file:
+            writer = wt(file)
+            writer.writerow(["StudentID", "PC_Name", "Login_Time", "Logout_Time"])
+    except:
+        raise Exception("Log file error.")
 
 
 # Load student IDs
-def load_students():
+def load_students() -> dict[str, str]:
     students = {"iamadmin": "Admin"}
+    STUDENT_CSV = env.student_csv
     if ospath.exists(STUDENT_CSV):
         with open(STUDENT_CSV, mode="r", newline="") as file:
             reader = rd(file)
@@ -34,9 +34,6 @@ def load_students():
                 if len(row) >= 1:
                     students[row[0]] = row[1] if len(row) > 1 else ""
     return students
-
-
-ALLOWED_STUDENTS = load_students()
 
 BG_COLOR = "#1f1f1f"
 BTN_COLOR = "#353434"
@@ -46,7 +43,7 @@ SECONDARY_FONT_COLOR = "#aaaaaa"
 
 # ================= APP =====================
 class KioskApp:
-
+    FLAG_IDLE_FILE = env.flag_idle_file
     def __init__(self, master):
         from tkinter import Frame, Label, Entry
         self.reset_idle_timer()
@@ -75,9 +72,11 @@ class KioskApp:
         self.frame.grid_columnconfigure(0, weight=1)  # Center horizontally
 
         # --- PC Name ---
+        self._PC_NAME = get_pc_name()
+        self._ALLOWED_STUDENTS = load_students()
         self.pc_label = Label(
             self.frame,
-            text=PC_NAME,
+            text=self._PC_NAME,
             font=("Arial", 48, "bold"),
             fg=FONT_COLOR,
             bg=BG_COLOR,
@@ -144,13 +143,13 @@ class KioskApp:
         self.master.after(1000, self.check_idle)
     
     def write_idle(self):
-        if not ospath.exists(FLAG_IDLE_FILE):
-            with open(FLAG_IDLE_FILE, "w") as f:
+        if not ospath.exists(self.FLAG_IDLE_FILE):
+            with open(self.FLAG_IDLE_FILE, "w") as f:
                 f.write("IDLE")
 
     def remove_idle(self):
-        if ospath.exists(FLAG_IDLE_FILE):
-            rm(FLAG_IDLE_FILE)
+        if ospath.exists(self.FLAG_IDLE_FILE):
+            rm(self.FLAG_IDLE_FILE)
 
     # Disable closing
     def disable_event(self):
@@ -183,6 +182,7 @@ class KioskApp:
             args = " ".join(sid.split()[1:])
             default_arg = f"--user {ONLY_USER}"
             def check_cmd():
+                CMD_FILE_NAME = env.__CMD_FILE_NAME
                 result= is_process_running(CMD_FILE_NAME)
                 if result.running:
                     print(f"[{result.data["pid"]}] {CMD_FILE_NAME} is still running {result.data["exe"]}")
@@ -201,7 +201,7 @@ class KioskApp:
             check_cmd()
             return
 
-        if sid not in ALLOWED_STUDENTS:
+        if sid not in self._ALLOWED_STUDENTS:
             from tkinter.messagebox import showerror
             showerror("Access Denied", "Invalid Student ID!")
             self.entry.delete(0, END)
@@ -211,9 +211,10 @@ class KioskApp:
         self.login_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         # Log login
+        LOG_FILE = env.log_file
         with open(LOG_FILE, mode="a", newline="") as file:
             writer = wt(file)
-            writer.writerow([self.student_id, PC_NAME, self.login_time, ""])
+            writer.writerow([self.student_id, self._PC_NAME, self.login_time, ""])
 
         # Switch to logged-in view
         self.remove_idle()
@@ -239,7 +240,7 @@ class KioskApp:
 
         welcome_label = Label(
             self.frame,
-            text=f"Welcome {ALLOWED_STUDENTS[self.student_id] or self.student_id}",
+            text=f"Welcome {self._ALLOWED_STUDENTS[self.student_id] or self.student_id}",
             font=("Arial", 12),
             fg=FONT_COLOR,
             bg=BG_COLOR,
@@ -293,6 +294,7 @@ class KioskApp:
 
         # Update last empty logout field
         rows = []
+        LOG_FILE = env.log_file
         with open(LOG_FILE, mode="r", newline="") as file:
             reader = list(rd(file))
             rows = reader
@@ -318,10 +320,11 @@ class KioskApp:
 
 def run():
     from tkinter import Tk
-    check_admin("Main")
+    check_admin("main")
     root = Tk()
     root.title("Accessly UI")
-    app = KioskApp(root)
+    # app = KioskApp(root)
+    KioskApp(root)
     setattr(root, '_should_restart', True)  # mark flag
     root.mainloop()
     
@@ -333,6 +336,7 @@ def run():
 if __name__ == "__main__":
     from sys import exit
     try:
+        check_files()
         while True:
             should_restart = run()
             if not should_restart:

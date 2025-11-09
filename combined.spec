@@ -14,8 +14,8 @@ elif not user_input == "y":
 print("In development..." if dev_mode else "CONFIRMED PRODUCTION")
 
 # --- Script Configuration ---
-scripts = ["nl_Accessly", "nl_Main", "nl_Updater", "nl_cmd"]  # just edit this list anytime
-onefile_builds = ["nl_Updater", "elevater", "nl_cmd"]   # these will be built as single .exe
+scripts = ["nl_Accessly", "nl_main", "nl_updater", "nl_cmd"]  # just edit this list anytime
+onefile_builds = ["nl_updater", "elevater"]   # these will be built as single .exe
 forceCMD = ["nl_cmd"]
 PROJECT_NAME = "NizamLab"
 destination_folder = "src"

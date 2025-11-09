@@ -15,7 +15,7 @@ a = Analysis(['Accessly.py'],
              cipher=block_cipher,
              noarchive=False)
 
-b = Analysis(['Main.py'],
+b = Analysis(['main.py'],
              pathex=[],
              binaries=[],
              datas=[],

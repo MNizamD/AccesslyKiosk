@@ -6,8 +6,9 @@
   "exclude": [
     "**/node_modules",
     "**/__pycache__",
-    "src/experimental",
-    "src/typestubs"
+    "venv",
+    "build",
+    "__pycache__"
   ],
 
   "ignore": [
@@ -22,6 +23,12 @@
 
   "reportMissingImports": "error",
   "reportMissingTypeStubs": false,
+  "reportUnusedVariable": "warning",
+  "reportUnusedImport": "warning",
+  "reportUnusedFunction": "warning",
+  "reportUnusedClass": "warning",
+  "reportUnusedExpression": "warning",
+  "reportPrivateUsage": "none",
 
   "pythonVersion": "3.12",
   "pythonPlatform": "Windows",

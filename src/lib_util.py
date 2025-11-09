@@ -2,7 +2,7 @@ from os import path as ospath, getlogin
 from collections import deque
 from pathlib import Path
 from lib_env import EnvHelper
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 def is_crash_loop(loop_history: deque, threshold=5, window=1.0):
     """
@@ -123,73 +123,37 @@ def duplicate_file(src:Path, cpy:Path) -> bool:
     else:
         return True
 
-def internet_ok(timeout: float = 2.0, test_http: Optional[str] = None) -> bool:
-    """
-    Checks if internet is usable.
-    
-    - timeout: seconds to wait for TCP connection
-    - test_http: optional URL to test HTTP connectivity (like SQL API endpoint)
-    """
-    # 1️⃣ Check raw TCP to DNS (8.8.8.8:53)
-    dns = "8.8.8.8"
-    try:
-        from socket import create_connection
-        create_connection((dns, 53), timeout=timeout)
-    except OSError:
-        print(f"Unable to establish connection to {dns}")
-        return False
-    
-    # 2️⃣ Optional: HTTP test (API, SQL endpoint, etc.)
-    if test_http:
-        from requests import head, RequestException
-        try:
-            r = head(test_http, timeout=timeout)
-            return r.status_code < 500
-        except RequestException:
-            print("HTTP connection failed.")
-            return False
-    # If we reach here, TCP works, assume usable
-    return True
-
-
-def get_accessly_status(env: EnvHelper) -> dict:
-    from psycopg2 import connect, OperationalError
-    def get_cache():
+StatusType = dict[str, Any]
+def get_accessly_status(env: EnvHelper) -> StatusType:
+    def get_cache() -> StatusType:
         if ospath.exists(env.cache_file):
             result = read_json(str(env.cache_file))
             if result != None:
                 return result
-        
-        # No cache file, write new one
-        write_json(str(env.cache_file), {"ENABLED": True})
-
-        # Default fallback
-        return {"ENABLED": True}
+            
+        # No cache file, write new one and fallback
+        cache = {"ENABLED": True}
+        write_json(str(env.cache_file), cache)
+        return cache
 
     try:
-        if not internet_ok():
-            return get_cache()
-        # Connect with your Supabase Postgres URI
-        conn = connect(
-            "postgresql://postgres.wfnhabdtwcjebmyeglnt:qOe8OeQoGqOhQJia@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres",
-            sslmode="require"
+        from lib_conn import fetch_database
+        lock_status = fetch_database(
+            select_=["key", "value"],
+            from_="lock_kiosk_status",
+            where_="deleted_at is NULL"
         )
-        cur = conn.cursor()
 
-        # Fetch all rows (assuming table has columns: key, value)
-        cur.execute("SELECT key, value FROM lock_kiosk_status WHERE deleted_at is NULL;")
-        rows = cur.fetchall()
-
-        # Convert to dictionary
-        lock_status = {key: value for key, value in rows}
-
+        from lib_tool import find_dict
+        is_enabled = find_dict(data=lock_status or [], key='key', value='ENABLED')
+        if is_enabled is None:
+            raise FileNotFoundError("Could not find accessly status")
+        
+        result = { 'ENABLED': is_enabled['value'] }
         # Save to file (cache)
-        write_json(str(env.cache_file), lock_status)
-
-        cur.close()
-        conn.close()
-        return lock_status
-    except OperationalError as e:
+        write_json(str(env.cache_file), result)
+        return result
+    except Exception as e:
         print(f"Fetching failed: {e}")
         # Try reading from cache
         return get_cache()
@@ -263,36 +227,6 @@ def find_python_exe():
     
     return None
 
-def download(
-        src: str,
-        dst: str,
-        progress_callback: Optional[Callable[[float], None]] = None
-    ):
-    from requests import get
-
-    try:
-        with get(src, stream=True) as r:
-            r.raise_for_status()
-            total = int(r.headers.get("content-length", 0))
-            downloaded = 0
-
-            with open(dst, "wb") as f:
-                for chunk in r.iter_content(8192):
-                    if chunk:
-                        f.write(chunk)
-                        downloaded += len(chunk)
-
-                        # Call progress callback if provided
-                        if progress_callback:
-                            progress_callback(downloaded * 100 / total)
-
-        return True
-
-    except Exception as e:
-        print("[ERR_DOWNLOAD]:", e)
-        return False
-
-
 def is_admin_instance_running(exe_name: str):
     from psutil import process_iter, Process, AccessDenied, NoSuchProcess, ZombieProcess
     from os import getpid
@@ -320,7 +254,7 @@ def is_admin_instance_running(exe_name: str):
     return False
 
 # ================= Utility ====================
-def get_details_json(env: EnvHelper) -> dict[str, Optional[str]]:
+def get_details_json(env: EnvHelper) -> dict[str, str|None]:
     
     path = env.details_file
     from json import load
@@ -343,7 +277,7 @@ def run_elevated(cmd: str, wait: bool = False):
 
 def showToFronBackEnd(title: str, msg: str, details: str = ''):
     from tkinter import messagebox
-    print(f"[{title}]{msg}\n{details}")
+    print(f"[{title}] {msg}\n{details}")
     messagebox.showerror(title=title, message=msg, detail=details)
 
 if __name__ == "__main__":
