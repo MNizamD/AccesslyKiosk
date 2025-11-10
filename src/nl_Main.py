@@ -1,13 +1,14 @@
-# import tkinter as tk
+import __fix__
 from csv import reader as rd, writer as wt
 from os import path as ospath, remove as rm
 from datetime import datetime
 from lib.util import check_admin, get_details_json, is_process_running, run_elevated, showToFronBackEnd
 from lib.env import get_pc_name, ONLY_USER, get_env
 from time import sleep
+import sys
 # ================= CONFIG ==================
 
-env = get_env()
+env = get_env(sys=sys)
 CHECK_INTERVAL = 15
 
 def check_files():
@@ -332,7 +333,6 @@ def run():
 
 # ================= RUN =====================
 if __name__ == "__main__":
-    from sys import exit
     try:
         check_files()
         while True:
@@ -342,7 +342,7 @@ if __name__ == "__main__":
             print("Restarting...")
     except Exception as e:
         showToFronBackEnd("Main Error", "Main UI error.", str(e))
-        exit(369)
+        sys.exit(369)
     else:
-        exit(0)
+        sys.exit(0)
 

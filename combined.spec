@@ -77,7 +77,7 @@ for name in scripts:
             debug=False,
             bootloader_ignore_signals=False,
             strip=True,
-            upx=True,
+            upx=False,
             console=dev_mode,
         )
         exe_objects.append(exe)

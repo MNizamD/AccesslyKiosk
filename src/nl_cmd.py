@@ -1,9 +1,10 @@
-from sys import argv, exit
+import __fix__
+import sys
 from typing import Any, Iterable, Optional
 from lib.env import get_env, ONLY_USER
 
-ARGS = argv[1:]
-env = get_env()
+ARGS = sys.argv[1:]
+env = get_env(sys=sys)
 
 def FUNC_MAP_FILES():
     return {
@@ -186,7 +187,7 @@ def n_info(_):
     
     print(f"\n======= CLI =======")
     print(f"User: {get_cur_user()}")
-    print(f"Directory: {get_run_dir()}")
+    print(f"Directory: {get_run_dir(sys=sys)}")
     print(f"\n======= APP =======")
     print(f'User: {env.user}')
     print(f'Version: {data['version'] if data != None else 'Unknown'}')
@@ -218,7 +219,7 @@ commands = {
         'method': n_update
     },
     'exit': {
-        'method': lambda args: exit(0)  # ← store function reference, don't call it yet
+        'method': lambda _: sys.exit(0)  # ← store function reference, don't call it yet
     }
 }
 

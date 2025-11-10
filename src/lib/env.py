@@ -13,16 +13,14 @@ def get_pc_name() -> str:
     from socket import gethostname
     return gethostname()
 
-def get_run_dir() -> Path:
+def get_run_dir(sys) -> Path:
     """Folder containing the running file or executable."""
-    import sys
-    if is_frozen(sys):
+    if getattr(sys, "frozen", False):
         return Path(sys.executable).parent
-    return Path(__file__).resolve().parent
+    return Path(sys.argv[0]).resolve().parent
 
-def get_current_executable_name() -> str:
+def get_current_executable_name(sys) -> str:
     """Return the name of the currently running file or executable."""
-    import sys
     if is_frozen(sys):
         # When bundled by PyInstaller or similar
         return ospath.basename(sys.executable)
@@ -114,14 +112,14 @@ class EnvHelper:
     
     _instance = None  # singleton-style cache
 
-    def __new__(cls, user: Optional[str] = None):
+    def __new__(cls, sys, user: Optional[str] = None):
         # ✅ Lazy singleton — only one instance per project
-        if cls._instance is None or cls._instance.__user != user:
+        if cls._instance is None or cls._instance.__user != user or cls._instance.__sys != sys:
             cls._instance = super().__new__(cls)
             cls._instance._initialized = False
         return cls._instance
 
-    def __init__(self, user: Optional[str] = None):
+    def __init__(self, sys, user: Optional[str] = None):
         if self._initialized:
             return  # skip re-init if already created
         
@@ -130,6 +128,7 @@ class EnvHelper:
         if not is_user_exists(user):
             raise ValueError(f"User '{user}' does not exist on this computer.")
         
+        self.__sys = sys
         self._initialized = True
         self.__user = user
         self.__ACCESSLY_FILE_NAME = ACCESSLY_FILE_NAME()
@@ -177,12 +176,19 @@ class EnvHelper:
 
     @property
     def base_dir(self) -> Path:
-        """
-        The parent of the run directory (usually project root).
-        """
-        if get_current_executable_name() in self.all_app_processes(exclude=[self.__UPDATER_COPY_FILE_NAME]):
-            return move_up_dir(get_run_dir(), 2) # From /NizamLab/src/lib -> /NizamLab
-        return self.programdata / PROJECT_NAME # Return /NizamLab
+        """The parent of the run directory (usually project root)."""
+        if get_current_executable_name(self.__sys) in self.all_app_processes(exclude=[self.__UPDATER_COPY_FILE_NAME]):
+            return move_up_dir(get_run_dir(self.__sys))
+        return self.programdata / PROJECT_NAME
+    
+    # @property
+    # def base_dir(self) -> Path:
+    #     """
+    #     The parent of the run directory (usually project root).
+    #     """
+    #     if get_current_executable_name() in self.all_app_processes(exclude=[self.__UPDATER_COPY_FILE_NAME]):
+    #         return move_up_dir(get_run_dir(), 2) # From /NizamLab/src/lib -> /NizamLab
+    #     return self.programdata / PROJECT_NAME # Return /NizamLab
 
     @property
     def app_dir(self) -> Path:
@@ -355,11 +361,11 @@ class EnvHelper:
 _env_cache: Optional[EnvHelper] = None
 
 
-def get_env(user: Optional[str] = None) -> EnvHelper:
+def get_env(sys, user: Optional[str] = None) -> EnvHelper:
     """Return a lazily initialized global EnvHelper."""
     global _env_cache
     if _env_cache is None:
-        _env_cache = EnvHelper(user)
+        _env_cache = EnvHelper(sys, user)
     elif user and user != _env_cache.user:
         _env_cache.set_user(user)
     return _env_cache
@@ -373,7 +379,8 @@ def parse_env(env) -> EnvHelper:
 
 # ---------- DEMO ----------
 def demo():
-    env = get_env(user=ONLY_USER)
+    import sys
+    env = get_env(sys=sys, user=ONLY_USER)
 
     print("User:", env.user)
     print("PC Name:", get_pc_name())
@@ -385,14 +392,14 @@ def demo():
     print("Temp Dir:", env.temp_dir)
     print("Data Dir:", env.data_dir)
     print("Cache Dir:", env.cache_dir)
-    print("Run dir:", get_run_dir())
+    print("Run dir:", get_run_dir(sys))
     print("Base dir:", env.base_dir)
     print("App dir:", env.app_dir)
     print("Flag IDLE:", env.flag_idle_file)
     # print("Flag DESTRUCT:", env.flag_destruct_file)
     print("Cache:", env.cache_file)
     print("Details:", env.details_file)
-    print("Current name:", get_current_executable_name())
+    print("Current name:", get_current_executable_name(sys))
     print("All Processes:", env.all_app_processes())
     print("All Processes:", env.all_app_processes(dir=True))
 if __name__ == "__main__":

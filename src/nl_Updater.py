@@ -1,17 +1,17 @@
+import __fix__
+import sys
 from os import path as ospath
-from sys import argv
 from time import sleep
 from typing import Any, Literal, Optional
 from lib.util import is_process_running, check_admin
 from lib.env import get_env, normalize_path, ONLY_USER, SCHTASK_NAME
 
 def destruct(exitcode:int):
-    from sys import exit
     sleep(exitcode * 10) # if exit==1 -> sleep in 1*10 secs
-    exit(exitcode)
+    sys.exit(exitcode)
 
 ParseArgsType = dict[Literal["dir","user","update","force"], Any]
-def parse_args(args = argv[1:]) -> ParseArgsType:
+def parse_args(args = sys.argv[1:]) -> ParseArgsType:
     data:ParseArgsType = {
         'dir': None,
         'update': None,
@@ -42,7 +42,7 @@ def parse_args(args = argv[1:]) -> ParseArgsType:
 class UpdateSystem:
     CHECK_INTERVAL = 15
     def __init__(self, args:ParseArgsType):
-        self.env = get_env(user=args["user"])
+        self.env = get_env(sys=sys, user=args["user"])
         self.BASE_DIR = normalize_path(args["dir"]) if args["dir"] != None else self.env.base_dir
         self.ZIP_PATH = ospath.join(self.BASE_DIR, "update.zip")
         if not self.env.is_dir_safe(self.ZIP_PATH) or (not self.env.is_dir_safe(self.BASE_DIR)):
@@ -128,6 +128,10 @@ class UpdateSystem:
             filename: str,
             reason: Literal["outdated", "invalid"]
         ):
+        from lib.env import is_frozen
+        import sys
+        if not is_frozen(sys):
+            print(f"Update available but app is not frozen.")
         if reason == "outdated":
             print(f"Update Available! {local_ver} -> {remote_ver}")
         elif reason == "invalid":
@@ -153,7 +157,7 @@ class UpdateSystem:
             from lib.util import kill_processes
             kill_processes(self.env.all_app_processes())
             # Step 1: Extract the zip file
-            from zipper import extract_zip_dynamic, cleanup_extracted_files
+            from lib.zipper import extract_zip_dynamic, cleanup_extracted_files
             ui.set_message(f"Updating {local_ver} -> {remote_ver}")
             item_paths = extract_zip_dynamic(
                 zip_path=self.ZIP_PATH,

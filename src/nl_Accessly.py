@@ -1,9 +1,10 @@
+import __fix__
+import sys
 from time import sleep
 from lib.env import get_env, get_current_executable_name
-from sys import exit, argv
 from lib.util import showToFronBackEnd
 
-env = get_env()
+env = get_env(sys=sys)
 
 # ---------------- FUNCTIONS ----------------
 def check_server() -> bool:
@@ -53,7 +54,7 @@ def emergency_update():
     showToFronBackEnd("Crash","Detected crash loop!\nRunning emergency update...")
     run_updater(force=True)
     sleep(20)
-    exit(1)
+    sys.exit(1)
 
 
 def run_kiosk():
@@ -84,17 +85,17 @@ def run_kiosk():
 # ---------------- RUN ----------------
 if __name__ == "__main__":
     try:
-        if '--emergency' in argv:
+        if '--emergency' in sys.argv:
             emergency_update()
             
         from lib.util import raise_if_task_running, kill_processes
-        raise_if_task_running(get_current_executable_name())
+        raise_if_task_running(get_current_executable_name(sys=sys))
         # Kill all running app
         kill_processes(env.all_app_processes()) # Drop the accessly's name
         run_kiosk()
     except Exception as e:
         showToFronBackEnd(title="Accessly Error", msg=f"Please contact the administrator.", details=str(e))
-        exit(1)
+        sys.exit(1)
     else:
-        exit(0)
+        sys.exit(0)
         

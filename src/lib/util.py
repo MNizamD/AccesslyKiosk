@@ -270,7 +270,7 @@ def get_details_json(env: EnvHelper) -> dict[str, str|None]:
         return { "version": None, "updated": None}
 
 def run_elevated(cmd: str, wait: bool = False):
-    from elevater import run_elevate
+    from lib.elevater import run_elevate
     from env import is_frozen
     import sys
     pre_app = f'{find_python_exe()} ' if not is_frozen(sys=sys) else ''
@@ -283,6 +283,7 @@ def showToFronBackEnd(title: str, msg: str, details: str = ''):
 
 if __name__ == "__main__":
     from env import get_env
-    env=get_env()
+    import sys
+    env=get_env(sys=sys)
     print(get_accessly_status(env=env)) # Test
     # print(is_dir_safe(input("Directory: ")))
