@@ -177,10 +177,12 @@ class EnvHelper:
 
     @property
     def base_dir(self) -> Path:
-        """The parent of the run directory (usually project root)."""
+        """
+        The parent of the run directory (usually project root).
+        """
         if get_current_executable_name() in self.all_app_processes(exclude=[self.__UPDATER_COPY_FILE_NAME]):
-            return move_up_dir(get_run_dir())
-        return self.programdata / PROJECT_NAME
+            return move_up_dir(get_run_dir(), 2) # From /NizamLab/src/lib -> /NizamLab
+        return self.programdata / PROJECT_NAME # Return /NizamLab
 
     @property
     def app_dir(self) -> Path:
@@ -358,7 +360,7 @@ def get_env(user: Optional[str] = None) -> EnvHelper:
     global _env_cache
     if _env_cache is None:
         _env_cache = EnvHelper(user)
-    elif user and user != _env_cache.__user:
+    elif user and user != _env_cache.user:
         _env_cache.set_user(user)
     return _env_cache
 
@@ -370,7 +372,7 @@ def parse_env(env) -> EnvHelper:
     return env
 
 # ---------- DEMO ----------
-if __name__ == "__main__":
+def demo():
     env = get_env(user=ONLY_USER)
 
     print("User:", env.user)
@@ -392,6 +394,9 @@ if __name__ == "__main__":
     print("Details:", env.details_file)
     print("Current name:", get_current_executable_name())
     print("All Processes:", env.all_app_processes())
+    print("All Processes:", env.all_app_processes(dir=True))
+if __name__ == "__main__":
+    demo()
 
 """
 DELECTED env.flag_destruct_file
