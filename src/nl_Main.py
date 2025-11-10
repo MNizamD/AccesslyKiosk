@@ -2,8 +2,8 @@
 from csv import reader as rd, writer as wt
 from os import path as ospath, remove as rm
 from datetime import datetime
-from lib_util import check_admin, get_details_json, is_process_running, run_elevated, showToFronBackEnd
-from lib_env import get_pc_name, ONLY_USER, get_env
+from lib.util import check_admin, get_details_json, is_process_running, run_elevated, showToFronBackEnd
+from lib.env import get_pc_name, ONLY_USER, get_env
 from time import sleep
 # ================= CONFIG ==================
 
@@ -193,8 +193,6 @@ class KioskApp:
                     self.master.attributes('-topmost', True)
                     self.master.update()  # apply immediately
 
-            # from lib_env import get_run_dir
-            # run_elevated(f"{get_run_dir()}\\{CMD_FILE_NAME} {default_arg if sid=="cmd" else args}")
             run_elevated(f"{env.script_cmd} {default_arg if sid=="cmd" else args}")
             sleep(3)
             # Start polling for process exit

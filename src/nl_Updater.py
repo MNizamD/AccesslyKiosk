@@ -2,8 +2,8 @@ from os import path as ospath
 from sys import argv
 from time import sleep
 from typing import Any, Literal, Optional
-from lib_util import is_process_running, check_admin
-from lib_env import get_env, normalize_path, ONLY_USER, SCHTASK_NAME
+from lib.util import is_process_running, check_admin
+from lib.env import get_env, normalize_path, ONLY_USER, SCHTASK_NAME
 
 def destruct(exitcode:int):
     from sys import exit
@@ -53,7 +53,7 @@ class UpdateSystem:
         self.UPDATE_URL = args["update"]
         self.FLAG_IDLE_FILE = self.env.flag_idle_file
         self.DETAILS_FILE = ospath.join(self.APP_DIR, "details.json")
-        self.ACCESSLY_SCRIPT = ospath.join(self.APP_DIR, self.env.__ACCESSLY_FILE_NAME)
+        self.ACCESSLY_SCRIPT = ospath.join(self.APP_DIR, self.env.app_file_name("accessly"))
         self.GIT_OWNER = "MNizamD"
         self.GIT_REPO = "AccesslyKiosk"
         self.GIT_D_PATH = "releases/latest/download"
@@ -63,10 +63,10 @@ class UpdateSystem:
         if self.FORCE_RUN:
             print("Force running...")
 
-        from lib_conn import internet_ok
+        from lib.conn import internet_ok
         while True:
-            if not self.FORCE_RUN and not is_process_running(self.env.__ACCESSLY_FILE_NAME):
-                print(f"{self.env.__ACCESSLY_FILE_NAME} not running → shutting down updater.")
+            if not self.FORCE_RUN and not is_process_running(self.env.app_file_name("accessly")):
+                print(f"{self.env.app_file_name("accessly")} not running → shutting down updater.")
                 destruct(0)
 
             if not internet_ok():
@@ -136,7 +136,7 @@ class UpdateSystem:
             from ui.ui_updater import UpdateWindow
             ui = UpdateWindow()
             ui.set_message(f"Downloading {filename}...")
-            from lib_conn import download
+            from lib.conn import download
             while not download(
                 src=url,
                 dst=self.ZIP_PATH,
@@ -150,7 +150,7 @@ class UpdateSystem:
                 print("Main is in used, unsafe to execute extract")
                 sleep(self.CHECK_INTERVAL)
             
-            from lib_util import kill_processes
+            from lib.util import kill_processes
             kill_processes(self.env.all_app_processes())
             # Step 1: Extract the zip file
             from zipper import extract_zip_dynamic, cleanup_extracted_files
@@ -178,7 +178,7 @@ class UpdateSystem:
             ui.set_message("Restarting Accessly...")
             sleep(2)
             ui.close()
-            from lib_util import run_elevated
+            from lib.util import run_elevated
             run_elevated(f'schtasks /run /tn "{SCHTASK_NAME}"')
             destruct(0)
         except Exception as e:
@@ -189,12 +189,12 @@ class UpdateSystem:
 
 
     def is_main_idle(self):
-        if is_process_running(self.env.__MAIN_FILE_NAME):
+        if is_process_running(self.env.app_file_name("main")):
             return ospath.exists(self.FLAG_IDLE_FILE)
         return True
     
     def initiate_update(self):
-        from lib_util import get_details_json
+        from lib.util import get_details_json
         local = get_details_json(env=self.env)
         local_ver = local["version"]
 
@@ -265,12 +265,14 @@ def get_download_filename(url: str, fallback: str) -> str:
 
 
 if __name__ == "__main__":
+    # print(util)
+    # destruct(0)
     try:
         check_admin("Updater")
         updater = UpdateSystem(parse_args())
         updater.run_loop()
     except Exception as e:
-        from lib_util import showToFronBackEnd
+        from lib.util import showToFronBackEnd
         showToFronBackEnd(
             title="Updater Error",
             msg=str(e),

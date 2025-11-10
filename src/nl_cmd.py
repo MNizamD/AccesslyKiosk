@@ -1,6 +1,6 @@
 from sys import argv, exit
 from typing import Any, Iterable, Optional
-from lib_env import get_env, ONLY_USER
+from lib.env import get_env, ONLY_USER
 
 ARGS = argv[1:]
 env = get_env()
@@ -100,7 +100,7 @@ def n_set(line: list):
     
     # ✅ Write updated value
     data[key] = value
-    from lib_util import write_json
+    from lib.util import write_json
     write_json(str(FUNC_MAP_FILES()[func]), data)
     print(f"[SUCCESS] {func}.{key} => {value} ({type(value).__name__})")
 
@@ -135,12 +135,12 @@ def get_json(func: str) -> Optional['dict[str, Any]']:
     if func not in FUNC_MAP_FILES():
         raise ValueError(invalid_option('function', func, FUNC_MAP_FILES().keys()))
     # ✅ Read data
-    from lib_util import read_json
+    from lib.util import read_json
     return read_json(str(FUNC_MAP_FILES()[func]))
 
 def n_update(_):
     from os import path as ospath
-    from lib_util import kill_processes, run_elevated, duplicate_file
+    from lib.util import kill_processes, run_elevated, duplicate_file
     # path = "%ProgramData%\\MyApp\\config.json"
     url = input("DOWNLOAD LINK (Optional): ").strip()
     path = input("APP PATH (Optional): ").strip()
@@ -155,7 +155,7 @@ def n_update(_):
     run_elevated(f'{env.script_updater_copy} --dir {BASE_DIR} {USER} {D_URL} --force')
 
 def n_task_manager(line: 'list[str]'):
-    from lib_util import is_process_running, kill_processes
+    from lib.util import is_process_running, kill_processes
     if len(line) < 2:
         print("Argument incomplete, usage: <check/kill> <app/task_names>")
         return None
@@ -179,7 +179,7 @@ def n_task_manager(line: 'list[str]'):
         print("Invalid function, usage: <check/kill> <task_names>")
 
 def n_info(_):
-    from lib_env import get_cur_user, get_run_dir
+    from lib.env import get_cur_user, get_run_dir
     data = n_get(line=['detail'], read=False)
     if data is None:
         print("Cannot get info.")

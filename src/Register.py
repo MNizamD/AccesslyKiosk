@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import csv
 import os
-from lib_env import get_env
+from lib.env import get_env
 env = get_env()
 
 # LOCALDATA = os.getenv("LOCALAPPDATA")
