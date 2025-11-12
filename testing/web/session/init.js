@@ -17,8 +17,10 @@ initialize();
 
 async function logout() {
     if (winSession) {
+        // response = await winSession.show_message("Confirm logout?", "Logout", 0x00000004, 0x00000020);
+        // if (response != 6) return;
         stopTimer();
-        setInterval(async ()=> await winSession.logout(), 3000);
+        setInterval(async () => await winSession.logout(), 3000);
     } else {
         alert("Logout clicked");
     }

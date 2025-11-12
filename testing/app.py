@@ -62,6 +62,7 @@ class Api:
         
         else:
             message_box("Student ID not found!", "Not Found", icon=MessageBoxIcon.WARNING)
+    
 
     def open_session(self):
         print("Login successful!")
@@ -91,6 +92,9 @@ class Api:
             return True  # Allow Python to close
         print("User tried to close window! Blocked.")
         return False     # Block user attempts (Alt+F4)
+    
+    def show_message(self, *args, **kwargs):
+        return message_box(*args, **kwargs)
 
 class Session():
     def __init__(self, parent: Api) -> None:
@@ -103,6 +107,9 @@ class Session():
     def logout(self):
         self._parent._allow_close = True
         self._parent._window.destroy()
+
+    def show_message(self, *args, **kwargs):
+        return message_box(*args, **kwargs)
 
 if __name__ == "__main__":
     try:
