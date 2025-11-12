@@ -72,7 +72,7 @@ def invalid_option(type: str, func: str, options: Iterable) -> str:
     return f"Unknown {type} '{func}'. Valid options: " + "".join(f"\n--> {op}" for op in options)
 
 def n_set(line: list):
-    import json
+    from json import loads, JSONDecodeError
     if len(line) != 3:
         print("Argument incomplete, usage: <function> <key> <value>")
         return
@@ -82,8 +82,8 @@ def n_set(line: list):
     value = parse_typed_value(value)
     if not force_cast:
         try:
-            value = json.loads(value)
-        except json.JSONDecodeError:
+            value = loads(value)
+        except JSONDecodeError:
             value = value  # keep as string if not JSON    
     
     data = n_get([func], False)
