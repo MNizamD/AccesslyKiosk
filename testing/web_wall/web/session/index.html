@@ -1,0 +1,26 @@
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <title>Session</title>
+        <link rel="stylesheet" href="./style.css" />
+        <link rel="stylesheet" href="./../bootstrap/css/bootstrap.min.css" />
+    </head>
+    <body class="bg-dark text-light">
+        <div
+            id="loading-screen"
+            class="position-fixed top-0 start-0 w-100 h-100 bg-dark"
+            style="z-index: 9999"
+        ></div>
+        <div class="h-100 w-100 d-flex flex-column justify-content-center align-items-center">
+            <h5 id="welcome-header">Welcome!</h5>
+            <p id="status-timer" class="small">Logged in: 0s</p>
+            <div>
+                <button class="btn btn-secondary btn-sm" id="btn_report">Report</button>
+                <button class="btn btn-danger btn-sm" onclick="logout()" id="btn_logout">Logout</button>
+            </div>
+        </div>
+        <script src="../util.js"></script>
+        <script src="./init.js"></script>
+        <script src="./../bootstrap/js/bootstrap.min.js"></script>
+    </body>
+</html>
