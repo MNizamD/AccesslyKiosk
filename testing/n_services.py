@@ -150,6 +150,7 @@ if __name__ == "__main__":
         
         # sync_github_to_local()
         print(get_rate_limit())
+        initiate_update()
         # print(ROOT_DIR)
         # print(APP_DIR)
         # print(get_local_details())

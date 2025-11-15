@@ -23,7 +23,7 @@ class LoginWall:
         return False     # Block user attempts (Alt+F4)
     
     def run(self):
-        dev_mode = False
+        dev_mode = True
         self.window = create_window(
             "Access Wall",
             url=f"file://{self.login_path}",

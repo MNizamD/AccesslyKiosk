@@ -6,6 +6,8 @@ async function initialize() {
     if (winApi) {
         const pcName = await winApi.get_pc_name();
         document.getElementById("pc-name").innerText = pcName;
+    } else {
+        location.reload(true);
     }
 
     await fadeOut("loading-screen");
