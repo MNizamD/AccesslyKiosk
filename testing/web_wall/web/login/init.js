@@ -4,7 +4,13 @@ async function initialize() {
     winApi = await window.getPyWebViewAPI();
     if (winApi) {
         document.getElementById("pc-name").innerText = await winApi.get_pc_name();
+        details = JSON.parse(await winApi.get_details());
+        if (details["version"] && details["updated"]){
+            document.getElementById("lbl-version").innerText = details["version"]
+            document.getElementById("lbl-updated").innerText = details["updated"]
+        }
     } else {
+        document.getElementById("btn-refresh").classList.remove("d-none")
         fadeOutLoader();
         console.log("Running in browser - initializing mock API");
     }

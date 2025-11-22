@@ -1,10 +1,12 @@
 from ctypes import windll, c_int, c_wchar_p
 from enum import IntEnum, IntFlag
+from typing import Literal
 
 
 # ─────────────────────────────────────────────────────────────
 # Define Enums for clarity and type-safety
 # ─────────────────────────────────────────────────────────────
+
 
 class MessageBoxButtons(IntFlag):
     OK = 0x00000000
@@ -40,6 +42,8 @@ class MessageBoxResult(IntEnum):
 # MessageBox function
 # ─────────────────────────────────────────────────────────────
 MB_TOPMOST = 0x00040000  # makes message box always on top
+
+
 def message_box(
     text: str,
     title: str = "Message",
@@ -50,15 +54,40 @@ def message_box(
     flags = buttons | icon
     flags |= MB_TOPMOST
 
-    result = windll.user32.MessageBoxW(0, c_wchar_p(text), c_wchar_p(title), c_int(flags))
+    result = windll.user32.MessageBoxW(
+        0, c_wchar_p(text), c_wchar_p(title), c_int(flags)
+    )
     return MessageBoxResult(result)
+
+
+def get_details_json() -> dict[Literal["version", "updated"], str] | None:
+    from sys import argv
+    from pathlib import Path
+
+    path = Path(argv[0]).resolve().parent / "details.json"
+    details = {}
+    from json import load
+
+    try:
+        if not path.exists():
+            raise FileNotFoundError(f"Missing details: {path}")
+        with open(path, "r", encoding="utf-8") as f:
+            details = load(f)
+
+        if any((key not in details) for key in ["version", "updated"]):
+            raise Exception("Invalid detail json.")
+
+        return details
+
+    except Exception as e:
+        print("[GET_DETAILS_JSON_ERR]:", e)
+        return None
 
 
 # ─────────────────────────────────────────────────────────────
 # Example Usage
 # ─────────────────────────────────────────────────────────────
-
-if __name__ == "__main__":
+def test_msg():
     result = message_box(
         "Do you want to continue?",
         "Confirm Action",
@@ -72,3 +101,7 @@ if __name__ == "__main__":
         message_box("You pressed NO!", "Result", icon=MessageBoxIcon.WARNING)
     elif result == MessageBoxResult.CANCEL:
         message_box("Cancelled.", "Result", icon=MessageBoxIcon.ERROR)
+
+
+if __name__ == "__main__":
+    print(get_details_json())

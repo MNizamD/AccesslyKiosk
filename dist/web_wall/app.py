@@ -1,7 +1,8 @@
 from webview import create_window, start as webview_start, Window
 import sys
 from pathlib import Path
-from app_ext import message_box, MessageBoxIcon
+from app_ext import message_box, MessageBoxIcon, get_details_json
+from json import dumps
 
 
 def init_js_ready(window: Window):
@@ -27,7 +28,7 @@ class LoginWall:
         return False  # Block user attempts (Alt+F4)
 
     def run(self):
-        dev_mode = True
+        dev_mode = False
         # Attach the close handler
         wall_window = create_window(
             "Access Wall",
@@ -44,7 +45,7 @@ class LoginWall:
             raise Exception("Failed to start window")
         self.wall_window = wall_window
         self.wall_window.events.closing += self.block_close
-        webview_start(debug=False)
+        webview_start(debug=dev_mode)
 
     def is_destructing(self):
         return self._destruct
@@ -60,6 +61,9 @@ class Api:
     def get_pc_name(self):
         """Return the PC name to the frontend"""
         return self._pc_name
+
+    def get_details(self):
+        return dumps(get_details_json())
 
     def validate_login(self, user_id):
         if user_id == "destruct":
@@ -116,7 +120,6 @@ class Session:
         self._parent = parent
 
     def get_user(self):
-        from json import dumps
 
         return dumps({"name": self._parent._user})
 
