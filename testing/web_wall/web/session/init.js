@@ -3,14 +3,15 @@ let user = null;
 
 async function initialize() {
     // Set User name in the welcome header
-    const header = document.getElementById("welcome-header");
-    winSession = await waitForPyWebview();
+    winSession = await window.getPyWebViewAPI();
     if (winSession) {
         user = JSON.parse(await winSession.get_user());
-        header.innerText = user.name;
+        document.getElementById("welcome-header").innerText = user.name;
+    } else {
+        fadeOutLoader();
+        console.log("Running in browser - initializing mock API");
     }
 
-    await fadeOut("loading-screen");
 }
 
 initialize();

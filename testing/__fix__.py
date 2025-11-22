@@ -2,8 +2,8 @@ import sys, os
 from pathlib import Path
 
 # --- Determine base directory ---
-if getattr(sys, 'frozen', False):
-    base_dir = getattr(sys, '_MEIPASS')  # PyInstaller temp folder
+if getattr(sys, "frozen", False):
+    base_dir = getattr(sys, "_MEIPASS")  # PyInstaller temp folder
 else:
     base_dir = os.path.dirname(os.path.abspath(__file__))
 

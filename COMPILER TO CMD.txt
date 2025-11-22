@@ -13,3 +13,4 @@ pyinstaller --onefile testing\launcher.py --hidden-import webview
 
 pyinstaller --noconfirm --upx-dir "upx-5.0.2-win64" combined.spec
 pyinstaller --noconfirm combined.spec
+python -m PyInstaller --noconfirm combined.spec

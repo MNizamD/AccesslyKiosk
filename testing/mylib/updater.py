@@ -4,8 +4,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from os import path as ospath, remove, walk, makedirs
 from requests import get
 
-from time import sleep
-from util import git_sha_of_file, ONLY_USER, is_user_exists, printToConsoleAndBox
+from util import git_sha_of_file, ONLY_USER, is_user_exists, printToConsoleAndBox, destruct
 
 ParseArgsType = dict[Literal["dir","user","update","force"], Any]
 def parse_args(args: list) -> ParseArgsType:
@@ -202,10 +201,6 @@ class Updater:
             print("Downloaded:", relative)
         except Exception as e:
             print("Failed to download:", relative, str(e))
-
-def destruct(exitcode:int):
-    sleep(exitcode * 9 + 1) # if exit==1 -> sleep in 1*10 secs
-    sys.exit(exitcode)
 
 def run():
     try:

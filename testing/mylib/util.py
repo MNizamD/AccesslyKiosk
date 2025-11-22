@@ -6,19 +6,23 @@ from typing import Literal, Optional
 PROJECT_NAME = "NizamLab"
 ONLY_USER = "GVC"
 
+
 def launcher_name():
     return app_name("launcher")
+
 
 def services_name():
     return app_name("services")
 
+
 def app_names():
-    return [ launcher_name(), services_name() ]
+    return [launcher_name(), services_name()]
+
 
 def get_name_from_path(path: Optional[str] = None) -> str:
     if path != None:
         return ospath.basename(path)
-    
+
     """Return the name of the currently running file or executable."""
     if is_frozen():
         # When bundled by PyInstaller or similar
@@ -26,6 +30,7 @@ def get_name_from_path(path: Optional[str] = None) -> str:
     else:
         # Normal Python script
         return ospath.basename(Path(sys.argv[0]).resolve())
+
 
 def move_up_dir(directory: Path, level: int = 1) -> Path:
     """
@@ -35,34 +40,36 @@ def move_up_dir(directory: Path, level: int = 1) -> Path:
         directory = directory.parent
     return directory.resolve()
 
+
 def is_frozen():
     return getattr(sys, "frozen", False)
+
 
 def is_user_exists(username: str) -> bool:
     """Check if a local Windows user exists."""
     from subprocess import run
+
     try:
         result = run(
-            ["net", "user", username],
-            capture_output=True,
-            text=True,
-            shell=True
+            ["net", "user", username], capture_output=True, text=True, shell=True
         )
         # Return code 0 = user exists
         return result.returncode == 0
     except Exception as e:
         print(f"Error checking user: {e}")
         return False
-    
+
+
 def get_cur_user() -> str:
     return environ.get("USERNAME", "Unknown")
+
 
 def get_cur_dir() -> Path:
     """Folder containing the running file or executable."""
     if is_frozen():
         return Path(sys.executable).parent
     return Path(sys.argv[0]).resolve().parent
-    
+
 
 def app_name(name: str):
     # Frozen as exe
@@ -72,19 +79,26 @@ def app_name(name: str):
     else:
         return f"{prefix}{name}.py"
 
+
 def get_git_header():
-    GITHUB_TOKEN = decrypt("0e081909110f361e08153250552c5f3f20543c30540a245a333b2831295b021d203e1555310610590f0c1c23311e592f5d57193706352b1a0b573803010e3c092d552e2f0d19213b26322e24212a3f2026365b34335b1a58282d3d5755", 'iamadmin')
+    GITHUB_TOKEN = decrypt(
+        "0e081909110f361e08153250552c5f3f20543c30540a245a333b2831295b021d203e1555310610590f0c1c23311e592f5d57193706352b1a0b573803010e3c092d552e2f0d19213b26322e24212a3f2026365b34335b1a58282d3d5755",
+        "iamadmin",
+    )
 
     return {
         "Authorization": f"Bearer {GITHUB_TOKEN}",
-        "Accept": "application/vnd.github+json"
+        "Accept": "application/vnd.github+json",
     }
+
 
 def encrypt(text: str, key: str) -> str:
     key_bytes = key.encode()
     text_bytes = text.encode()
 
-    encrypted = bytes([b ^ key_bytes[i % len(key_bytes)] for i, b in enumerate(text_bytes)])
+    encrypted = bytes(
+        [b ^ key_bytes[i % len(key_bytes)] for i, b in enumerate(text_bytes)]
+    )
     return encrypted.hex()
 
 
@@ -92,8 +106,11 @@ def decrypt(hex_str: str, key: str) -> str:
     key_bytes = key.encode()
     encrypted = bytes.fromhex(hex_str)
 
-    decrypted = bytes([b ^ key_bytes[i % len(key_bytes)] for i, b in enumerate(encrypted)])
+    decrypted = bytes(
+        [b ^ key_bytes[i % len(key_bytes)] for i, b in enumerate(encrypted)]
+    )
     return decrypted.decode()
+
 
 def encrypt_token():
     token = input("Token: ")
@@ -101,10 +118,12 @@ def encrypt_token():
     encrypted_token = encrypt(token, key)
     print(encrypted_token)
 
+
 def find_python_exe():
     from sys import executable
     from shutil import which
     from os import getlogin
+
     """Return full path to a python.exe to use, or None if not found."""
     # 1) if running under a python interpreter (non-frozen), use it
     exe = executable
@@ -124,7 +143,7 @@ def find_python_exe():
         # prefer py -3 if available (we want an exe path, but py is a launcher)
         print("Python launcher PY found")
         return py_launcher
-    
+
     # 4) common per-user and system-wide installs
     common_dirs = [
         rf"C:\Users\{getlogin()}\AppData\Local\Programs\Python",
@@ -134,45 +153,53 @@ def find_python_exe():
         r"C:\Users\{getlogin()}\miniconda3",
     ]
     from glob import glob
+
     for base in common_dirs:
         if ospath.isdir(base):
             for exe_path in glob(ospath.join(base, "Python*", "python.exe")):
                 print("Python common directory found")
                 return exe_path
-    
+
     return None
 
+
 def run_elevated(cmd: str, wait: bool = False):
-    from lib.elevater import run_elevate
-    pre_cmd = f'{find_python_exe()} ' if not is_frozen() else ''
-    run_elevate('Administrator','iamadmin', wait, f"{pre_cmd}{cmd}")
+    from elevater import run_elevate
+
+    pre_cmd = f"{find_python_exe()} " if not is_frozen() else ""
+    run_elevate("Administrator", "iamadmin", wait, f"{pre_cmd}{cmd}")
+
 
 def run_normally(cmd: list[str], wait: bool = True, hidden: bool = False) -> int:
     app = str(cmd[0])
-    if app.lower().endswith('py'):
+    if app.lower().endswith("py"):
         python = find_python_exe()
         if python != None:
             cmd.insert(0, python)
 
     if wait:
         from subprocess import run
+
         return run(cmd, shell=False).returncode
     else:
         from subprocess import Popen, DEVNULL, CREATE_NO_WINDOW
+
         proc = Popen(
             cmd,
             shell=False,
             stdin=DEVNULL,
             stdout=None,
             stderr=None,
-            creationflags=CREATE_NO_WINDOW if hidden else 0
+            creationflags=CREATE_NO_WINDOW if hidden else 0,
         )
         return proc.pid
+
 
 def kill_processes(names: list[str], silent: bool = True):
     from time import sleep
     from psutil import process_iter, NoSuchProcess
     from os import getpid
+
     current_pid = getpid()
     for n in names:
         for proc in process_iter(attrs=["name", "pid"]):
@@ -189,14 +216,16 @@ def kill_processes(names: list[str], silent: bool = True):
                     print(f"No such process: {n}")
                 pass
 
+
 def git_sha_of_file(path: Path | str):
     from hashlib import sha1
+
     with open(path, "rb") as fp:
         data = fp.read()
     return sha1(f"blob {len(data)}\0".encode() + data).hexdigest()
 
 
-def duplicate_file(src: Path, cpy:Path) -> bool:
+def duplicate_file(src: Path, cpy: Path) -> bool:
     try:
         if ospath.exists(cpy):
             if git_sha_of_file(src) != git_sha_of_file(cpy):
@@ -204,24 +233,36 @@ def duplicate_file(src: Path, cpy:Path) -> bool:
                 return True
             else:
                 from os import remove
+
                 remove(cpy)
 
         from shutil import copy2
+
         copy2(src, cpy)
         return True
     except Exception as e:
         print(f"Duplication error: {e}")
         return False
 
+
 def printToConsoleAndBox(title: str, message: str, type: Literal["warn", "err"]):
     print(f"[{title}] {message}.")
     print("")
     from msgbx import message_box, MessageBoxIcon
+
     message_box(
         title=title,
         text=message,
-        icon= MessageBoxIcon.WARNING if type == "warn" else MessageBoxIcon.ERROR
+        icon=MessageBoxIcon.WARNING if type == "warn" else MessageBoxIcon.ERROR,
     )
+
+
+def destruct(exitcode: int):
+    from time import sleep
+
+    sleep(exitcode * 9 + 1)  # if exit==1 -> sleep in 1*10 secs
+    sys.exit(exitcode)
+
 
 if __name__ == "__main__":
     encrypt_token()

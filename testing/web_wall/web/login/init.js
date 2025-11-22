@@ -1,38 +1,31 @@
 let winApi = null;
 
 async function initialize() {
-    // Set PC name in the login wall
-    winApi = await waitForPyWebview();
+    winApi = await window.getPyWebViewAPI();
     if (winApi) {
-        const pcName = await winApi.get_pc_name();
-        document.getElementById("pc-name").innerText = pcName;
+        document.getElementById("pc-name").innerText = await winApi.get_pc_name();
     } else {
-        location.reload(true);
+        fadeOutLoader();
+        console.log("Running in browser - initializing mock API");
     }
 
-    await fadeOut("loading-screen");
+    document.addEventListener("keydown", function (event) {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            login();
+        }
+    });
 }
 
 initialize();
+
 function login() {
-    login_input = document.getElementById("id_input");
-    // if (login_input.value === "try") {
-    //     if(isInPyWebview()) winApi.close_wall();
-    //     login_input.value = "";
-    //     return;
-    // }
-    if (winApi)
-        winApi.validate_login(login_input.value);
-    
+    const login_input = document.getElementById("id_input");
+    if (winApi) winApi.validate_login(login_input.value);
+    else console.log("You pressed enter!");
+
     login_input.value = "";
 }
-
-document.addEventListener("keydown", function (event) {
-    if (event.key === "Enter") {
-        event.preventDefault();
-        login();
-    }
-});
 
 const input = document.getElementById("id_input");
 input.addEventListener("input", () => {
