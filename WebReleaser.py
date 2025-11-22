@@ -117,7 +117,9 @@ def main():
 
     print(f"[+] Updated details.json -> {new_version}")
 
-    if copy_files(WEB_WALL_DEV, PROD_FOLDER):
+    if copy_files(WEB_WALL_DEV, PROD_FOLDER) and copy_files(
+        DETAILS_FILE, WEB_WALL_PROD
+    ):
         print(f"[✓] New release created: {PROD_FOLDER}")
     # Make new release
     # make_zip(new_version)
