@@ -6,7 +6,7 @@ from time import sleep
 from mylib.util import run_normally, run_elevated
 
 ParseArgsType = dict[
-    Literal["wait", "python", "sleep", "cmd", "elevated", "hidden"], Any
+    Literal["wait", "python", "sleep", "cmd", "elevated", "hidden", "cmdlist"], Any
 ]
 
 
@@ -16,6 +16,7 @@ def parse_args(args: list) -> ParseArgsType:
         "python": False,
         "sleep": 1,
         "cmd": "",
+        "cmdlist": list(),
         "elevated": False,
         "hidden": False,
     }
@@ -35,9 +36,10 @@ def parse_args(args: list) -> ParseArgsType:
         elif arg in bool_args:
             data[arg[2:]] = True
         else:
-            data["cmd"] += f" {arg}"
+            data["cmdlist"].append(str(arg))
         i += 1
 
+    data["cmd"] = " ".join(data["cmdlist"])
     return data
 
 
@@ -83,7 +85,6 @@ class Remote:
             print("[REMOTE_ERR]: Failed to fetch from database.")
             return
 
-        print(cmd_lines)
         for cmd_line in cmd_lines:
             if "command" in cmd_line and isinstance(cmd_line["command"], str):
                 line = cmd_line["command"]
@@ -94,7 +95,10 @@ class Remote:
                     )
                 else:
                     run_normally(
-                        cmd=args["cmd"], wait=args["wait"], hidden=args["hidden"]
+                        cmd=args["cmdlist"],
+                        wait=args["wait"],
+                        hidden=args["hidden"],
+                        with_python=args["python"],
                     )
                 # --dir C:\Users\Marohom\Documents\NizamLab\dist --user "Marohom"
                 sleep(int(args["sleep"]))

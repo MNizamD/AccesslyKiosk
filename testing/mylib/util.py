@@ -166,13 +166,18 @@ def find_python_exe():
 def run_elevated(cmd: str, wait: bool = False, with_python: bool = True):
     from elevater import run_elevate
 
-    pre_cmd = f"{find_python_exe()} " if not is_frozen() and with_python else ""
-    run_elevate("Administrator", "iamadmin", wait, f"{pre_cmd}{cmd}")
+    pre_cmd = find_python_exe() if not is_frozen() and with_python else ""
+    run_elevate("Administrator", "iamadmin", wait, f"{pre_cmd} {cmd}")
 
 
-def run_normally(cmd: list[str], wait: bool = True, hidden: bool = False) -> int:
-    app = str(cmd[0])
-    if app.lower().endswith("py"):
+def run_normally(
+    cmd: list[str],
+    wait: bool = True,
+    hidden: bool = False,
+    with_python: bool = not is_frozen(),
+) -> int:
+    # app = str(cmd[0])
+    if with_python:
         python = find_python_exe()
         if python != None:
             cmd.insert(0, python)
@@ -185,7 +190,7 @@ def run_normally(cmd: list[str], wait: bool = True, hidden: bool = False) -> int
         from subprocess import Popen, DEVNULL, CREATE_NO_WINDOW
 
         proc = Popen(
-            cmd,
+            args=cmd,
             shell=False,
             stdin=DEVNULL,
             stdout=None,
