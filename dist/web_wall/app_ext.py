@@ -60,11 +60,10 @@ def message_box(
     return MessageBoxResult(result)
 
 
-def get_details_json() -> dict[Literal["version", "updated"], str] | None:
-    from sys import argv
+def get_details_json(dir_path) -> dict[Literal["version", "updated"], str] | None:
     from pathlib import Path
 
-    path = Path(argv[0]).resolve().parent / "details.json"
+    path = Path(dir_path) / "details.json"
     details = {}
     from json import load
 
@@ -104,4 +103,6 @@ def test_msg():
 
 
 if __name__ == "__main__":
-    print(get_details_json())
+    from sys import argv
+
+    print(get_details_json(argv[0]))

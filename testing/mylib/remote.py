@@ -3,17 +3,26 @@ if __name__ == "__main__":
 from typing import Any, Literal
 from mylib.conn import fetch_database, internet_ok
 from time import sleep
-from mylib.util import run_elevated
+from mylib.util import run_normally, run_elevated
 
-ParseArgsType = dict[Literal["wait", "python", "sleep", "cmd"], Any]
+ParseArgsType = dict[
+    Literal["wait", "python", "sleep", "cmd", "elevated", "hidden"], Any
+]
 
 
 def parse_args(args: list) -> ParseArgsType:
-    data: ParseArgsType = {"wait": False, "python": False, "sleep": 1, "cmd": ""}
+    data: ParseArgsType = {
+        "wait": False,
+        "python": False,
+        "sleep": 1,
+        "cmd": "",
+        "elevated": False,
+        "hidden": False,
+    }
 
     i = 0
     value_args = ["--sleep"]
-    bool_args = ["--wait", "--python"]
+    bool_args = ["--wait", "--python", "--elevated", "--hidden"]
     while i < len(args):
         arg = args[i].lower()
         if arg in value_args:
@@ -79,9 +88,14 @@ class Remote:
             if "command" in cmd_line and isinstance(cmd_line["command"], str):
                 line = cmd_line["command"]
                 args = parse_args(line.split())
-                run_elevated(
-                    cmd=args["cmd"], wait=args["wait"], with_python=args["python"]
-                )
+                if args["elevated"]:
+                    run_elevated(
+                        cmd=args["cmd"], wait=args["wait"], with_python=args["python"]
+                    )
+                else:
+                    run_normally(
+                        cmd=args["cmd"], wait=args["wait"], hidden=args["hidden"]
+                    )
                 # --dir C:\Users\Marohom\Documents\NizamLab\dist --user "Marohom"
                 sleep(int(args["sleep"]))
             else:

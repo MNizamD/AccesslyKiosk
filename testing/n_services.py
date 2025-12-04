@@ -19,12 +19,6 @@ def cleanup():
 # Register cleanup to run when script exits
 atexit_register(cleanup)
 
-# i = 0
-# def listenToServer():  # test
-#     global i
-#     print(i)
-#     i += 1
-
 
 def run_updater():
     updater = update.Updater(cmd=argv)

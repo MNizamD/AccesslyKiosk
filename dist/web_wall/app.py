@@ -37,6 +37,8 @@ class LoginWall:
             height=400,
             fullscreen=(not dev_mode),
             frameless=True,
+            draggable=False,
+            easy_drag=False,
             on_top=True,
             js_api=self.api,
             confirm_close=False,  # Needed to intercept close events
@@ -63,7 +65,7 @@ class Api:
         return self._pc_name
 
     def get_details(self):
-        return dumps(get_details_json())
+        return dumps(get_details_json(self._parent.web_dir))
 
     def validate_login(self, user_id):
         if user_id == "destruct":
