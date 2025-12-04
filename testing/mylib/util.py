@@ -163,10 +163,10 @@ def find_python_exe():
     return None
 
 
-def run_elevated(cmd: str, wait: bool = False):
+def run_elevated(cmd: str, wait: bool = False, with_python: bool = True):
     from elevater import run_elevate
 
-    pre_cmd = f"{find_python_exe()} " if not is_frozen() else ""
+    pre_cmd = f"{find_python_exe()} " if not is_frozen() and with_python else ""
     run_elevate("Administrator", "iamadmin", wait, f"{pre_cmd}{cmd}")
 
 
@@ -228,7 +228,9 @@ def git_sha_of_file(path: Path | str):
 def duplicate_file(src: Path, cpy: Path) -> bool:
     try:
         if ospath.exists(cpy):
-            if git_sha_of_file(src) != git_sha_of_file(cpy):
+            src_sha = git_sha_of_file(src)
+            cpy_sha = git_sha_of_file(cpy)
+            if src_sha == cpy_sha:
                 print("Exact matching file already exists.")
                 return True
             else:
@@ -239,6 +241,7 @@ def duplicate_file(src: Path, cpy: Path) -> bool:
         from shutil import copy2
 
         copy2(src, cpy)
+        print(f"Duplicate complete. ({cpy})")
         return True
     except Exception as e:
         print(f"Duplication error: {e}")
@@ -260,7 +263,7 @@ def printToConsoleAndBox(title: str, message: str, type: Literal["warn", "err"])
 def destruct(exitcode: int):
     from time import sleep
 
-    sleep(exitcode * 9 + 1)  # if exit==1 -> sleep in 1*10 secs
+    sleep((exitcode * 4 + 1))  # if exit==1 -> sleep in 1*10 secs
     sys.exit(exitcode)
 
 

@@ -1,9 +1,14 @@
+if __name__ == "__main__":
+    import __fix2__
 from typing import Any, Callable, Literal, Optional
 
-def internet_ok(timeout: float = 2.0, test_http: Optional[str] = None) -> bool:
+
+def internet_ok(
+    timeout: float = 2.0, test_http: Optional[str] = None, quiet=False
+) -> bool:
     """
     Checks if internet is usable.
-    
+
     - timeout: seconds to wait for TCP connection
     - test_http: optional URL to test HTTP connectivity (like SQL API endpoint)
     """
@@ -11,30 +16,34 @@ def internet_ok(timeout: float = 2.0, test_http: Optional[str] = None) -> bool:
     dns = "8.8.8.8"
     try:
         from socket import create_connection
+
         create_connection((dns, 53), timeout=timeout)
     except OSError:
-        print(f"Unable to establish connection to {dns}")
+        if not quiet:
+            print(f"Unable to establish connection to {dns}")
         return False
-    
+
     # 2️⃣ Optional: HTTP test (API, SQL endpoint, etc.)
     if test_http:
         from requests import head, RequestException
+
         try:
             r = head(test_http, timeout=timeout)
             return r.status_code < 500
         except RequestException:
-            print("HTTP connection failed.")
+            if not quiet:
+                print("HTTP connection failed.")
             return False
     # If we reach here, TCP works, assume usable
     return True
 
+
 def download(
-        src: str,
-        dst: str,
-        progress_callback: Optional[Callable[[float], None]] = None
-    ) -> bool:
+    src: str, dst: str, progress_callback: Optional[Callable[[float], None]] = None
+) -> bool:
     try:
         from requests import get
+
         with get(src, stream=True) as r:
             r.raise_for_status()
             total = int(r.headers.get("content-length", 0))
@@ -55,46 +64,54 @@ def download(
     except Exception as e:
         print("[DOWNLOAD_ERR]:", e)
         return False
-    
+
+
 def fetch_database(
-        select_: list[str],
-        from_:Literal["lock_kiosk_status", "app_status"],
-        where_: Optional[str] = None
-        ) -> list[dict[str, Any]] | None:
-    
+    select_: list[str],
+    from_: Literal["lock_kiosk_status", "app_status", "app_commands"],
+    where_: Optional[str] = None,
+) -> list[dict[str, Any]] | None:
+
     # Connect with your Supabase Postgres URI
     from psycopg2 import connect, OperationalError
+
     try:
         conn = connect(
             "postgresql://postgres.wfnhabdtwcjebmyeglnt:qOe8OeQoGqOhQJia@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres",
-            sslmode="require"
+            sslmode="require",
         )
         cur = conn.cursor()
 
         # Fetch all rows (assuming table has columns: key, value)
         # cur.execute(f"SELECT key, value FROM lock_kiosk_status WHERE deleted_at is NULL;")
-        cur.execute(f"SELECT {', '.join(select_)} FROM {from_} {f'WHERE {where_}' if where_ != None else ''};")
+        cur.execute(
+            f"SELECT {', '.join(select_)} FROM {from_} {f'WHERE {where_}'*int(where_ != None)};"
+        )
         rows = cur.fetchall()
 
         col_names = [desc[0] for desc in (cur.description or [])]
 
         # ✅ Convert each row into a dict
         result = [dict(zip(col_names, row)) for row in rows]
-
         cur.close()
         conn.close()
         return result
     except OperationalError as e:
-        from util import printToConsoleAndBox
+        from mylib.util import printToConsoleAndBox
+
         printToConsoleAndBox(title="Connection Error", message=str(e), type="err")
 
-def find_dict(data: list[dict[str, Any]], column: str, value: Any) -> dict[str, Any] | None:
+
+def find_dict(
+    data: list[dict[str, Any]], column: str, value: Any
+) -> dict[str, Any] | None:
     """Return the first dict in `data` where dict[key] == value."""
     return next((d for d in data if d.get(column) == value), None)
 
+
 if __name__ == "__main__":
-    print(fetch_database(
-        select_=["key", "value"],
-        from_="app_status",
-        where_="deleted_at is NULL"
-    ))
+    print(
+        fetch_database(
+            select_=["key", "value"], from_="app_status", where_="deleted_at is NULL"
+        )
+    )

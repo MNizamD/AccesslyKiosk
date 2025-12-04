@@ -1,12 +1,60 @@
-import __fix__
+import __fix1__
+from sys import argv
 import mylib.updater as update
-from threading import Thread
+import mylib.remote as remote
+from mylib.interval import setInterval
+from atexit import register as atexit_register
+from time import sleep
+
+
+def cleanup():
+    """Cleanup function to stop all running intervals and threads"""
+    if "updateInterval" in globals():
+        updateInterval.stop()
+    if "commandInterval" in globals():
+        commandInterval.stop()
+    # You can add other cleanup tasks here
+
+
+# Register cleanup to run when script exits
+atexit_register(cleanup)
+
+# i = 0
+# def listenToServer():  # test
+#     global i
+#     print(i)
+#     i += 1
+
+
+def run_updater():
+    updater = update.Updater(cmd=argv)
+    updater.initiate_update()
+    return setInterval(updater.initiate_update, 10)
+
+
+def run_commander():
+    commander = remote.Remote()
+    commander.get_commands()
+    return setInterval(commander.get_commands, commander.CMD_INTERVAL)
+    # return setInterval(listenToServer, 1)
 
 
 if __name__ == "__main__":
     try:
-        t = Thread(target=update.run, daemon=False)
-        t.start()
-        t.join()
+        # Start the interval (make sure your setInterval returns an object with stop() method)
+        updateInterval = run_updater()
+
+        # Start the thread as daemon so it stops when main thread exits
+        commandInterval = run_commander()
+
+        # Keep sleeping indefinitely instead of just 100 seconds
+        while True:
+            sleep(1)
+    except KeyboardInterrupt:
+        print("\nReceived interrupt, shutting down...")
     except Exception as e:
-        print(e)
+        print("[Service Error]:", e)
+        cleanup()
+    finally:
+        cleanup()
+        sleep(10)

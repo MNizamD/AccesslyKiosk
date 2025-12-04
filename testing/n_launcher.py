@@ -1,8 +1,14 @@
-import __fix__
+import __fix1__
 import sys
 from importlib.util import spec_from_file_location, module_from_spec
 from pathlib import Path
-from mylib.util import destruct, duplicate_file, run_elevated, printToConsoleAndBox
+from mylib.util import (
+    destruct,
+    duplicate_file,
+    run_elevated,
+    printToConsoleAndBox,
+    get_cur_dir,
+)
 
 
 def import_external(module_path: Path):
@@ -19,18 +25,16 @@ def import_external(module_path: Path):
 def run_services(force: bool = False):
     from mylib.env import get_env
 
-    env = get_env()
-    force_arg = "" if not force else "--force"
+    env = get_env(get_cur_dir())
+    force_arg = "--force" * int(force)
     services_path = env.services_path()
     services_path_temp = env.services_path(temp=True)
     if duplicate_file(services_path, services_path_temp):
         run_elevated(
-            f'{services_path_temp} --dir {env.app_dir()} --user "{env.user()}" {force_arg}'
+            cmd=f'{services_path_temp} --dir {env.app_dir()} --user "{env.user()}" {force_arg}'
         )
     else:
-        printToConsoleAndBox(
-            title="Updater", message="Failed to duplicate updater.", type="err"
-        )
+        raise Exception("Failed to duplicate updater.")
 
 
 def check_server() -> bool:
@@ -58,6 +62,7 @@ def check_server() -> bool:
 
 
 def run_web_wall():
+    run_services()
     APP_DIR = (
         Path(sys.executable).parent
         if getattr(sys, "frozen", False)

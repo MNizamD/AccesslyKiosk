@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-import sys, os, shutil
+import sys, os
 from typing import Any, Literal
 
 # --- Mode selection ---
@@ -26,15 +26,27 @@ scripts: list[dict[Literal["name", "hidden_imports", "one_file", "force_cmd"], A
             "mylib.util",
             "mylib.env",
             "mylib.conn",
+            "mylib.elevater",
             "wsgiref.simple_server",
             "webview.http",
-            "mylib.elevater",  # You're using this in run_elevated
             "psutil",
         ],
         "one_file": True,
         "force_cmd": False,
     },
-    {"name": "n_services", "hidden_imports": [], "one_file": True, "force_cmd": False},
+    {
+        "name": "n_services",
+        "hidden_imports": [
+            "mylib.msgbx",
+            "mylib.util",
+            "mylib.env",
+            "mylib.conn",
+            "mylib.elevater",
+            "mylib.updater",
+        ],
+        "one_file": True,
+        "force_cmd": False,
+    },
 ]  # just edit this list anytime
 # onefile_builds = ["n_launcher", "n_services"]  # these will be built as single .exe
 onefile_builds = [item["name"] for item in scripts if item.get("one_file", False)]
